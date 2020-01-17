@@ -14,6 +14,8 @@ from traceback import print_exc
 import time
 import json
 
+from .protocol_parser import Protocol
+
 APP = 'hrprotoparser'
 
 
@@ -49,6 +51,14 @@ class Backend(object):
     dest = self.config.template_dir / 'templates' / name
     remove_tree(str(dest))
     return dest
+
+  def parseProtocol(self, f, filename):
+    p = Protocol()
+    p.parse(f, filename)
+    return p
+  
+
+  
 
     
 

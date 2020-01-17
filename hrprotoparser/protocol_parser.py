@@ -1,6 +1,7 @@
 
 import re
 import sys
+import io
 
 
 class lazyproperty:
@@ -283,6 +284,39 @@ class Alias(Type):
     
 
 
+
+
+BuiltinTypes = { n : Builtin(n) for n in (
+  'int8',  'int16',  'int32',  'int64',
+  'uint8', 'uint16', 'uint32', 'uint64',
+  'float', 'double', 'char', 'byte'
+)}
+
+class FileIterator:
+  def __init__(self, f, filename):
+    self.f = f
+    self.filename = filename
+    self.line = 0
+    self.it = iter(f)
+    self.cur_line = None
+
+  def __iter__(self):
+    return self
+
+  def __next__(self):
+    self.line += 1
+    self.cur_line = next(self.it)
+    return self.cur_line
+
+  def seek0(self):
+    self.f.seek(0)
+    self.line = 0
+    self.it = iter(self.f)
+    self.cur_line = None
+
+class ParseError(RuntimeError):
+  pass
+
 def addFields(Consts, S, s, it):
   for l in it:
     m = Struct.struct_end_re.fullmatch(l)
@@ -295,22 +329,14 @@ def addFields(Consts, S, s, it):
       m = Field.comment_continuation.fullmatch(l)
       if m:
         continue
-      raise RuntimeError('Error in [ {} ]\n at line {}'.format(repr(s), l))
+      raise ParseError(f'{it.filename}:{it.line} : in [ {rper(s)} ], Error while treating "{it.cur_line}"')
     s.addField(Consts, S, m)
-
-
-
-BuiltinTypes = { n : Builtin(n) for n in (
-  'int8',  'int16',  'int32',  'int64',
-  'uint8', 'uint16', 'uint32', 'uint64',
-  'float', 'double', 'char', 'byte'
-)}
 
 class Protocol(object):
   """
   Class to represent a protocol
   """
-  def __init__(self, Constants = dict(), Structs = dict(), Packets = dict()):
+  def __init__(self, Constants = None, Structs = None, Packets = None, Types = None):
     if Constants is None:
       self.Constants = dict()
     else:
@@ -334,10 +360,11 @@ class Protocol(object):
     self.E = []
     self.P = []
 
-  def parse(self, f, file_name, ):
-    it = iter(enumerate(f))
+
+  def parse(self, f, filename, ):
+    it = FileIterator(f, filename)
     try:
-      for i, l in it:
+      for l in it:
         m = Constant.line_re.fullmatch(l)
         if m:
           c = Constant(self.Constants, m)
@@ -360,9 +387,8 @@ class Protocol(object):
                 e.addConstant(c)
             self.Types[e.name] = e
             self.E.append(e)
-      f.seek(0)
-      it = iter(enumerate(f))
-      for i, l in it:
+      it.seek0()
+      for l in it:
         m = Struct.struct_re.fullmatch(l)
         if m:
           s = Struct(m)
@@ -383,7 +409,31 @@ class Protocol(object):
           s = Alias(m, self.Constants, self.P)
           self.Packets[s.name] = s
           self.P.append(s)
+    except ParseError:
+      raise
     except Exception as e:
-      raise RuntimeError(f'{file_name}:{i} : Error while treating {l}') from e
+      raise ParseError(f'{it.filename}:{it.line} : Error while treating "{it.cur_line}"') from e
+
+  def __repr__(self):
+    o = io.StringIO('')
+    o.write('Protocol(\n')
+    o.write('C=[\n  ')
+    o.write(',\n  '.join(repr(c) for c in self.C))
+    o.write('\n],\n')
+    o.write('GC=[\n  ')
+    o.write(',\n  '.join(repr(gc) for gc in self.GC))
+    o.write('\n],\n')
+    o.write('E=[\n  ')
+    o.write(',\n  '.join(repr(e) for e in self.E))
+    o.write('\n],\n')
+    o.write('S=[\n  ')
+    o.write(',\n  '.join(repr(s) for s in self.S))
+    o.write('\n],\n')
+    o.write('P=[\n  ')
+    o.write(',\n  '.join(repr(p) for p in self.P))
+    o.write('\n],\n')
+    o.write(')')
+    return o.getvalue()
+    
 
 

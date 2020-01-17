@@ -99,4 +99,12 @@ def uninstall(name):
   f = B.uninstallTemplate(name)
   click.echo(f'{name} uninstalled at {f}')
 
-
+@click.argument('protocol', type=click.File('r'))
+@main.command(name='parse')
+def parse(protocol):
+  """
+  Print everything parsed from the protocol
+  """
+  p = B.parseProtocol(protocol, protocol.name)
+  click.echo(repr(p))
+    
