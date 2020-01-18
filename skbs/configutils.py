@@ -3,7 +3,7 @@ import appdirs
 import os
 from hl037utils.config import Config as C
 
-config_dir = appdirs.user_config_dir('hrprotoparser', 'Léo Flaventin Hauchecorne')
+config_dir = appdirs.user_config_dir('skbs', 'Léo Flaventin Hauchecorne')
 
 default_config = os.path.join(config_dir, 'conf.py')
 
@@ -18,7 +18,7 @@ def getConfig(path = None):
   return conf
 
 def getBackend(path = None):
-  from hrprotoparser.backend import Backend as B
+  from skbs.backend import Backend as B
   return B(getConfig(path))
 
 

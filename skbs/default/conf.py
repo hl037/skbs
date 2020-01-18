@@ -7,7 +7,7 @@ from pathlib import Path
 
 verbose = False
 
-template_dir = Path(appdirs.user_data_dir())/'hrprotoparser'
+template_dir = Path(appdirs.user_data_dir())/'skbs'
 
 
 

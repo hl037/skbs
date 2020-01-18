@@ -88,6 +88,27 @@ Template plugin structure
 
 A template plugin structure permits to define a generator, for a language or a documentation etc.
 
+.. code-block::
+
+   /template/
+   | - plugin.py (optional)
+   | - root/
+   |   | - __include/ (optional)
+   |   |   | - include_file1
+   |   |   | - __template_include_file2
+   |   |    \___
+   |   | - file.c
+   |   | - __template_file2.c
+   |   |   | - subdir/
+   |   |   | - __include/ (optional)
+   |   |   |   | - include_file3
+   |   |   |   | - __template_include_file4
+   |   |   |    \___
+   |   |    \___
+   |   | - ...
+   |    \___
+    \___
+
 It is a directory hierarchy with an optionnal __plugin.py that defines options of the template and functions usable in them.
 Then all files starting by __template_<name> will be parsed and copied as <name> in the destination directory
 All other files will be copied as is.
@@ -101,7 +122,7 @@ it can define a variable ``config`` which should be an ``hl037utils.config.Confi
   from hl037utils.config import Config as C
   conf = C(
     tempiny = [
-      (<regex_pattern>, C(
+      (<glob_pattern>, C(
         stmt_line_start=r'//#'
         begin_expr='{{'
         end_expr='}}'

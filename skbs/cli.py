@@ -14,7 +14,7 @@ from pathlib import Path
 from . import configutils
 from .backend import Backend
 
-#from dbug import *
+from dbug import *
 
 def common_opts(*F):
   def composed(a):
@@ -99,12 +99,42 @@ def uninstall(name):
   f = B.uninstallTemplate(name)
   click.echo(f'{name} uninstalled at {f}')
 
-@click.argument('protocol', type=click.File('r'))
-@main.command(name='parse')
-def parse(protocol):
+@main.command(name='list')
+def listTemplates():
   """
-  Print everything parsed from the protocol
+  List installed templates
   """
-  p = B.parseProtocol(protocol, protocol.name)
-  click.echo(repr(p))
-    
+  default, user = B.listTemplates()
+  se = click.secho
+  se('\n')
+  se('User-installed templates :', fg='cyan', nl=False)
+  se('\n\n ', nl=False)
+  se("\n  ".join(user), fg='green', nl=False)
+  se('\n\n', nl=False)
+  se('Default templates :', fg='cyan', nl=False)
+  se('\n\n ', nl=False)
+  se("\n  ".join(default), fg='green', nl=False)
+  se('\n')
+
+
+@main.command(name='gen')
+@click.argument('template', type=click.Path())
+@click.argument('dest', type=str)
+@click.argument('args', nargs=-1, type=click.UNPROCESSED)
+def gen(template, dest, args):
+  """
+  Generate a skeleton from a template.
+
+  template : if template starts with an '@', it will look for an installed template. Else, it will be considered as the template path.
+  dest : the output directory (parents will be created if needed)
+  args : argument passed to the template ( skbs gen <template_name> @!help for more informations )
+  """
+  try:
+    template_path = B.findTemplate(template)
+    res, help = B.execTemplate(template_path, dest, args)
+  except:
+    import pdb; pdb.xpm()
+    return
+  click.echo(help)
+
+
