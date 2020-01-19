@@ -71,29 +71,32 @@ def config_path():
 
 
 @main.command(name='install-defaults')
+@click.option('--symlink', is_flag=True)
 @ensureB
-def installDefaults():
+def installDefaults(symlink):
   """
   Install default provided templates
   """
-  f = B.installDefaultTemplates()
+  f = B.installDefaultTemplates(symlink)
   click.echo(f'Default templates installed at {f}')
 
+@main.command(name='install')
+@click.option('--symlink', is_flag=True)
 @click.option('--name', '-n', type=str, default=None, required=False)
 @click.argument('src-directory', type=click.Path())
-@main.command(name='install')
 @ensureB
-def install(src_directory, name):
+def install(src_directory, name, symlink):
   """
   Install a new template
   """
   if name is None :
     name = src_directory.name
-  f = B.installTemplate(name, src_directory)
+  f = B.installTemplate(name, src_directory, symlink)
   click.echo(f'{name} template installed at {f}')
   
-@click.argument('name')
 @main.command(name='uninstall')
+@click.argument('name')
+@ensureB
 def uninstall(name):
   """
   Uninstall a template
@@ -102,6 +105,7 @@ def uninstall(name):
   click.echo(f'{name} uninstalled at {f}')
 
 @main.command(name='list')
+@ensureB
 def listTemplates():
   """
   List installed templates
@@ -123,6 +127,7 @@ def listTemplates():
 @click.argument('template', type=click.Path())
 @click.argument('dest', type=str)
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
+@ensureB
 def gen(template, dest, args):
   """
   Generate a skeleton from a template.
