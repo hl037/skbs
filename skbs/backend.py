@@ -80,26 +80,45 @@ class Backend(object):
       [ p.name for p in user_dir.iterdir()] if user_dir.is_dir() else []
     )
 
-  def installDefaultTemplates(self):
-    from distutils.dir_util import copy_tree
-    self.config.template_dir.mkdir(parents=True, exist_ok=True)
-    pkg_resources.set_extraction_path(self.config.template_dir)
+  def installDefaultTemplates(self, symlink=False):
     dest = str(self.config.template_dir/'default/templates/') + '/'
     src = pkg_resources.resource_filename(APP, 'default/templates/')
     if src != dest :
-      copy_tree(src, dest)
+      dest_p = Path(dest)
+      if dest_p.exists() :
+        if dest_p.is_symlink():
+          dest_p.unlink()
+        else:
+          from distutils.dir_util import remove_tree
+          remove_tree(dest)
+
+      if symlink :
+        dest_p.parent.mkdir(parents=True, exist_ok=True)
+        dest_p.symlink_to(src)
+      else :
+        from distutils.dir_util import copy_tree
+        self.config.template_dir.mkdir(parents=True, exist_ok=True)
+        pkg_resources.set_extraction_path(self.config.template_dir)
+        copy_tree(src, dest)
     return dest
 
-  def installTemplate(self, name, src):
-    from distutils.dir_util import copy_tree
+  def installTemplate(self, name, src, symlink=False):
     dest = self.config.template_dir / 'templates' / name
-    copy_tree(str(src), str(dest))
+    if symlink :
+      dest.parent.mkdir(parents=True, exist_ok=True)
+      dest.symlink_to(src)
+    else :
+      from distutils.dir_util import copy_tree
+      copy_tree(str(src), str(dest))
     return dest
   
   def uninstallTemplate(self, name):
-    from distutils.dir_util import remove_tree
     dest = self.config.template_dir / 'templates' / name
-    remove_tree(str(dest))
+    if dest.is_symlink() :
+      dest.unlink()
+    else :
+      from distutils.dir_util import remove_tree
+      remove_tree(str(dest))
     return dest
 
   @staticmethod

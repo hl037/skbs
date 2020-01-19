@@ -35,7 +35,14 @@ def test_createConfig(tmp_path, datadir):
 
 def test_installDefaultTemplates(freshBackend, datadir):
   B, tmp_path = freshBackend
-  B.installDefaultTemplates()
+  B.installDefaultTemplates(False)
+  src_templates = datadir['default/templates']
+  target_templates = tmp_path / 'default/templates'
+  assertDirsEqual(target_templates, src_templates)
+  
+def test_installDefaultTemplates_symlink(freshBackend, datadir):
+  B, tmp_path = freshBackend
+  B.installDefaultTemplates(True)
   src_templates = datadir['default/templates']
   target_templates = tmp_path / 'default/templates'
   assertDirsEqual(target_templates, src_templates)
@@ -43,14 +50,29 @@ def test_installDefaultTemplates(freshBackend, datadir):
 def test_installTemplate(freshBackend, datadir):
   B, tmp_path = freshBackend
   t1 = datadir['t1']
-  B.installTemplate('t1', t1)
+  B.installTemplate('t1', t1, False)
   target_templates = tmp_path / 'templates/t1'
   assertDirsEqual(target_templates, t1)
 
 def test_uninstallTemplate(freshBackend, datadir):
   B, tmp_path = freshBackend
   t1 = datadir['t1']
-  B.installTemplate('t1', t1)
+  B.installTemplate('t1', t1, False)
+  B.uninstallTemplate('t1')
+  target_templates = tmp_path / 'templates/t1'
+  assert not target_templates.exists()
+  
+def test_installTemplate_symlink(freshBackend, datadir):
+  B, tmp_path = freshBackend
+  t1 = datadir['t1']
+  B.installTemplate('t1', t1, True)
+  target_templates = tmp_path / 'templates/t1'
+  assertDirsEqual(target_templates, t1)
+
+def test_uninstallTemplate_symlink(freshBackend, datadir):
+  B, tmp_path = freshBackend
+  t1 = datadir['t1']
+  B.installTemplate('t1', t1, True)
   B.uninstallTemplate('t1')
   target_templates = tmp_path / 'templates/t1'
   assert not target_templates.exists()
