@@ -46,4 +46,7 @@ sqlite*bk
 data
 wsdata
 
+htmlcov
+.coverage
+
 _me_*

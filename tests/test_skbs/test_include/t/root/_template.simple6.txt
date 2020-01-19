@@ -1,0 +1,3 @@
+included : 
+{{include('inc1')}}
+{{include('_template.inc2')}}

@@ -79,14 +79,16 @@ def installDefaults():
   f = B.installDefaultTemplates()
   click.echo(f'Default templates installed at {f}')
 
-@click.argument('src-directory')
-@click.argument('name')
+@click.option('--name', '-n', type=str, default=None, required=False)
+@click.argument('src-directory', type=click.Path())
 @main.command(name='install')
 @ensureB
-def install(name, src_directory):
+def install(src_directory, name):
   """
   Install a new template
   """
+  if name is None :
+    name = src_directory.name
   f = B.installTemplate(name, src_directory)
   click.echo(f'{name} template installed at {f}')
   

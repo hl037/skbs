@@ -39,16 +39,21 @@ class Include(object):
 
     out_name, is_opt, is_template = Backend.parseFileName(p.name, self.opt_prefix, self.template_prefix)
     if is_opt :
-      raise RuntimeError("And included file can't be optionnal")
+      raise RuntimeError("An included file can't be optionnal")
     if is_template :
-      tempiny = Backend.getFirstMatch(tempiny_l, p.with_name(out_name))
+      tempiny = Backend.getFirstMatch(self.tempiny_l, p.with_name(out_name))
       _locals = C(**self.base_locals, **_locals)
       out = io.StringIO()
       with p.open('r') as in_f :
         Backend.processFile(tempiny, in_f, out, _locals, p, None)
-      return out.getvalue()
+      val = out.getvalue()
     else:
-      return p.read_text()
+      val = p.read_text()
+    # On unix-like system, a line must end with '\n'.
+    # Since the included concent could be in the middle of a line, the extra '\n' should be removed
+    if val[-1] == '\n' :
+      return val[:-1] 
+    return val
 
 class Backend(object):
   OPT_PREFIX = '_opt.'
@@ -101,7 +106,6 @@ class Backend(object):
   def parsePlugin(path, args, dest, ask_help):
     tempiny = None
     plugin = None
-
     g = C(
       args = args,
       ask_help = ask_help,
@@ -158,7 +162,7 @@ class Backend(object):
   def processFile(tempiny, in_f, out_f, base_locals, in_p, out_p):
     _locals = C(**base_locals)
     _locals.dest = out_p
-    _locals.parent = out_p.parent
+    _locals.parent = out_p.parent if out_p is not None else None
     template = tempiny.compile(in_f)
     template(out_f, {}, _locals)
 
@@ -187,8 +191,8 @@ class Backend(object):
   
   def execTemplate(self, template_path : Path, dest : str, args):
     from hl037utils.config import Config as C
-    ask_help = dest == '@help'
-    conf, plugin, help = self.parsePlugin(template_path / 'plugin.py', dest, args, ask_help)
+    ask_help = (dest == '@help')
+    conf, plugin, help = self.parsePlugin(template_path / 'plugin.py', args, dest, ask_help)
     if ask_help :
       return False, help
     dest = Path(dest)

@@ -1,0 +1,148 @@
+
+import filecmp
+import pytest
+from pytest_datadir_ng import datadir, datadir_copy
+from pathlib import Path
+
+from dbug import *
+
+def assertDirsEqual(d1, d2):
+  cmp = filecmp.dircmp(d1, d2)
+  assert cmp.right_only == []
+  assert cmp.left_only == []
+  assert cmp.diff_files == []
+
+def assertFilesEqual(f1, f2):
+  assert filecmp.cmp(f1, f2, shallow=False)
+
+
+@pytest.fixture()
+def freshBackend(tmp_path):
+  from skbs.backend import Backend
+  from hl037utils.config import Config as C
+  config = C(
+    verbose=False,
+    template_dir=tmp_path
+  )
+  return Backend(config), tmp_path
+
+
+def test_createConfig(tmp_path, datadir):
+  from skbs.backend import Backend as B
+  conf = datadir['default/conf.py']
+  B.createConfig(tmp_path / 'conf.py')
+  assertFilesEqual(conf, tmp_path / 'conf.py')
+
+def test_installDefaultTemplates(freshBackend, datadir):
+  B, tmp_path = freshBackend
+  B.installDefaultTemplates()
+  src_templates = datadir['default/templates']
+  target_templates = tmp_path / 'default/templates'
+  assertDirsEqual(target_templates, src_templates)
+  
+def test_installTemplate(freshBackend, datadir):
+  B, tmp_path = freshBackend
+  t1 = datadir['t1']
+  B.installTemplate('t1', t1)
+  target_templates = tmp_path / 'templates/t1'
+  assertDirsEqual(target_templates, t1)
+
+def test_uninstallTemplate(freshBackend, datadir):
+  B, tmp_path = freshBackend
+  t1 = datadir['t1']
+  B.installTemplate('t1', t1)
+  B.uninstallTemplate('t1')
+  target_templates = tmp_path / 'templates/t1'
+  assert not target_templates.exists()
+  
+def test_installTemplate_over(freshBackend, datadir):
+  B, tmp_path = freshBackend
+  t1 = datadir['t1']
+  t2 = datadir['t2']
+  B.installTemplate('t1', t1)
+  B.installTemplate('t1', t2)
+  target_templates = tmp_path / 'templates/t1'
+  assertDirsEqual(target_templates, t2)
+
+  
+
+# Processing tests :
+
+@pytest.fixture(scope='session')
+def simpleBackend(tmpdir_factory):
+  tmp_path = tmpdir_factory.mktemp('dir')
+  from skbs.backend import Backend
+  from hl037utils.config import Config as C
+  config = C(
+    verbose=False,
+    template_dir=tmp_path
+  )
+  return Backend(config), tmp_path
+
+
+def doTestProcessing(simpleBackend, tmp_path, datadir):
+  B, _ = simpleBackend
+  t = Path(datadir['t'])
+  r = Path(datadir['r'])
+  B.execTemplate(t, str(tmp_path), [42, 43])
+  assertDirsEqual(r, tmp_path)
+  
+def test_simple(simpleBackend, tmp_path, datadir):
+  doTestProcessing(simpleBackend, tmp_path, datadir)
+
+def test_subdirs(simpleBackend, tmp_path, datadir):
+  doTestProcessing(simpleBackend, tmp_path, datadir)
+
+
+def test_noplugin(simpleBackend, tmp_path, datadir):
+  doTestProcessing(simpleBackend, tmp_path, datadir)
+
+
+def test_withopt(simpleBackend, tmp_path, datadir):
+  B, _ = simpleBackend
+  t = Path(datadir['t'])
+  tt = Path(datadir['tt'])
+  r = Path(datadir['r'])
+  B.execTemplate(t, str(tmp_path), [42, 43])
+  B.execTemplate(tt, str(tmp_path), [42, 43])
+  assertDirsEqual(r, tmp_path)
+
+
+def test_withtemplate(simpleBackend, tmp_path, datadir):
+  doTestProcessing(simpleBackend, tmp_path, datadir)
+
+
+def test_withoptandtemplate(simpleBackend, tmp_path, datadir):
+  B, _ = simpleBackend
+  t = Path(datadir['t'])
+  tt = Path(datadir['tt'])
+  r = Path(datadir['r'])
+  B.execTemplate(t, str(tmp_path), [42, 43])
+  B.execTemplate(tt, str(tmp_path), [42, 43])
+  assertDirsEqual(r, tmp_path)
+
+def test_tempiny_mod(simpleBackend, tmp_path, datadir):
+  doTestProcessing(simpleBackend, tmp_path, datadir)
+
+
+def test_varplugin(simpleBackend, tmp_path, datadir):
+  doTestProcessing(simpleBackend, tmp_path, datadir)
+
+
+def test_args(simpleBackend, tmp_path, datadir):
+  doTestProcessing(simpleBackend, tmp_path, datadir)
+
+
+def test_include(simpleBackend, tmp_path, datadir):
+  doTestProcessing(simpleBackend, tmp_path, datadir)
+
+
+def test_include_scope(simpleBackend, tmp_path, datadir):
+  doTestProcessing(simpleBackend, tmp_path, datadir)
+
+
+def test_include_args(simpleBackend, tmp_path, datadir):
+  doTestProcessing(simpleBackend, tmp_path, datadir)
+
+
+

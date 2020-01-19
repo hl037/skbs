@@ -1,0 +1,5 @@
+## a = [42]
+should get [42] :
+{{include('_template.inc', a=a)}}
+should get [42, 43]:
+{{a}}

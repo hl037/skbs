@@ -1,0 +1,4 @@
+should be 42 :
+{{plugin.a1}}
+should be 43 :
+{{_p.a2}}
