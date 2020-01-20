@@ -13,3 +13,8 @@ if ask_help :
 
 plugin = 42
 
+conf = C(
+  raw_prefix=None
+)
+
+

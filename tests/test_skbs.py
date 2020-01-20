@@ -26,7 +26,6 @@ def freshBackend(tmp_path):
   )
   return Backend(config), tmp_path
 
-
 def test_createConfig(tmp_path, datadir):
   from skbs.backend import Backend as B
   conf = datadir['default/conf.py']
@@ -109,8 +108,19 @@ def doTestProcessing(simpleBackend, tmp_path, datadir):
   B.execTemplate(t, str(tmp_path), [42, 43])
   assertDirsEqual(r, tmp_path)
   
+  
+def doTestProcessing2(simpleBackend, tmp_path, datadir):
+  B, _ = simpleBackend
+  t = Path(datadir['t'])
+  tt = Path(datadir['tt'])
+  r = Path(datadir['r'])
+  B.execTemplate(t, str(tmp_path), [42, 43])
+  B.execTemplate(tt, str(tmp_path), [42, 43])
+  assertDirsEqual(r, tmp_path)
+
 def test_simple(simpleBackend, tmp_path, datadir):
   doTestProcessing(simpleBackend, tmp_path, datadir)
+
 
 def test_subdirs(simpleBackend, tmp_path, datadir):
   doTestProcessing(simpleBackend, tmp_path, datadir)
@@ -129,16 +139,31 @@ def test_withopt(simpleBackend, tmp_path, datadir):
   B.execTemplate(tt, str(tmp_path), [42, 43])
   assertDirsEqual(r, tmp_path)
 
-
 def test_withtemplate(simpleBackend, tmp_path, datadir):
   doTestProcessing(simpleBackend, tmp_path, datadir)
 
 
 def test_withoptandtemplate(simpleBackend, tmp_path, datadir):
+  doTestProcessing2(simpleBackend, tmp_path, datadir)
+
+
+
+@pytest.mark.parametrize(
+  'dir',
+  [
+    ''.join(('oO'[o], 'fF'[f], 'rR'[r], 'tT'[t]))
+    for o, f, r, t in (
+      map(int ,f'{i:0>4b}')
+      for i in range(16)
+    )
+  ]
+)
+def test_prefixes(simpleBackend, tmp_path, datadir, dir):
   B, _ = simpleBackend
-  t = Path(datadir['t'])
-  tt = Path(datadir['tt'])
-  r = Path(datadir['r'])
+  d = Path(datadir[dir])
+  t = d / 't'
+  tt = d / 'tt'
+  r = d / 'r'
   B.execTemplate(t, str(tmp_path), [42, 43])
   B.execTemplate(tt, str(tmp_path), [42, 43])
   assertDirsEqual(r, tmp_path)
@@ -165,6 +190,29 @@ def test_include_scope(simpleBackend, tmp_path, datadir):
 
 def test_include_args(simpleBackend, tmp_path, datadir):
   doTestProcessing(simpleBackend, tmp_path, datadir)
+  
+
+def test_pathmod(simpleBackend, tmp_path, datadir):
+  doTestProcessing2(simpleBackend, tmp_path, datadir)
+  
+  
+def test_pathmod_multi_deep(simpleBackend, tmp_path, datadir):
+  doTestProcessing2(simpleBackend, tmp_path, datadir)
+  
+def test_help(simpleBackend, datadir):
+  B, _ = simpleBackend
+  t = Path(datadir['t'])
+  b, h = B.execTemplate(t, '@help', None)
+  assert not b
+  assert 'Dummy help' == h
+  
+def test_help_forced(simpleBackend, tmp_path, datadir):
+  B, _ = simpleBackend
+  t = Path(datadir['t'])
+  b, h = B.execTemplate(t, str(tmp_path/'_'), None)
+  assert not b
+  assert 'Dummy help' == h
+  assert not (tmp_path/'_').exists()
 
 
 

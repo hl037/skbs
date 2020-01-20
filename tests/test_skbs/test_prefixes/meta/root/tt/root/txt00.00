@@ -1,0 +1,35 @@
+%# ind = dest.name.find('txt')
+%# of = dest.name[ind+3:ind+5]
+%# rt = dest.name[ind+6:ind+8]
+%# 
+%# d = {
+%#   '00' : lambda a, b : a or not b,
+%#   '01' : lambda a, b : True,
+%#   '10' : lambda a, b : not (a or b),
+%# }
+%#
+%# force =    d[of](_p.o, _p.f)
+%#
+%# if (not _p.o and of[0] == '1') or (not _p.f and of[1] == '1'):
+%#   template = d['00'](_p.r, _p.t)
+special case where it is equivalent as <<of>>.00
+%# -
+%# else :
+%#   template = d[rt](_p.r, _p.t)
+%# -
+%#
+%# opt = not force
+%#
+<<int(_p.o), int(_p.f), int(_p.r), int(_p.t),>>
+%# if opt :
+not good
+%# -
+%# else :
+good
+%# -
+%# if template:
+should be evaluated : {{42}}
+%# -
+%# else :
+should not be evaluated : {{42}}
+%# -

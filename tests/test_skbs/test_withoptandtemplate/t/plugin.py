@@ -11,3 +11,8 @@ if ask_help :
   """
   raise EndOfPlugin()
 
+conf = C(
+  raw_prefix=None
+)
+
+

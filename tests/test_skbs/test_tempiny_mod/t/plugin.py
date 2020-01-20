@@ -18,6 +18,8 @@ conf = C(
     ('*.c' , Tempiny.C),
     ('*.tex' , Tempiny.TEX),
     ('*' , Tempiny.PY),
-  ]
+  ],
+  raw_prefix=None,
 )
+
 

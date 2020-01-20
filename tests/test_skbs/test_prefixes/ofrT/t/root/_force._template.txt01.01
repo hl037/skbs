@@ -1,0 +1,4 @@
+special case where it is equivalent as 01.00
+(0, 0, 0, 1)
+not good
+should not be evaluated : {{42}}
