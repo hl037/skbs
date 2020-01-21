@@ -7,7 +7,7 @@ from hl037utils.config import Config as C
 import pkg_resources
 import os
 import shutil
-from .pluginutils import EndOfPlugin
+from .pluginutils import EndOfPlugin, PluginError
 from tempiny import Tempiny
 from itertools import accumulate
 import io
@@ -179,6 +179,7 @@ class Backend(object):
       ask_help = ask_help,
       C=C,
       EndOfPlugin=EndOfPlugin,
+      PluginError=PluginError,
       inside_skbs_plugin=True,
       dest=dest if not ask_help else None,
     )
@@ -190,9 +191,11 @@ class Backend(object):
         exec(obj, {}, g)
       except EndOfPlugin:
         pass
+    help = g.get('help', 'No help provided for this template')
+    if ask_help :
+      raise PluginError(help)
     conf = g.get('conf')
     plugin = g.get('plugin')
-    help = g.get('help', 'No help provided for this template' if ask_help else None)
     return conf, plugin, help
 
   def parseConf(self, conf):
@@ -283,9 +286,10 @@ class Backend(object):
   def execTemplate(self, template_path : Path, dest : str, args):
     from hl037utils.config import Config as C
     ask_help = (dest == '@help')
-    conf, plugin, help = self.parsePlugin(template_path / 'plugin.py', args, dest, ask_help)
-    if ask_help or help is not None:
-      return False, help
+    try:
+      conf, plugin, help = self.parsePlugin(template_path / 'plugin.py', args, dest, ask_help)
+    except PluginError as err:
+      return False, err.help
     dest = Path(dest)
     
     tempiny_l, file_name_parser, include_dirname, pathmod_filename = self.parseConf(conf)
@@ -348,5 +352,5 @@ class Backend(object):
             self.processFile(tempiny, in_f, out_f,  base_locals, in_p, out_p)
         else:
           shutil.copyfile(in_p, out_p)
-    return True, ''
+    return True, help
 

@@ -127,21 +127,42 @@ def listTemplates():
 @click.argument('template', type=click.Path())
 @click.argument('dest', type=str)
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
+@click.pass_context
 @ensureB
-def gen(template, dest, args):
+def gen(ctx, template, dest, args):
   """
   Generate a skeleton from a template.
 
   template : if template starts with an '@', it will look for an installed template. Else, it will be considered as the template path.
   dest : the output directory (parents will be created if needed)
-  args : argument passed to the template ( skbs gen <template_name> @!help for more informations )
+  args : argument passed to the template ( skbs gen <template_name> -- --help for more informations )
   """
-  try:
-    template_path = B.findTemplate(template)
-    res, help = B.execTemplate(template_path, dest, args)
-  except:
-    import pdb; pdb.xpm()
-    return
-  click.echo(help)
+  from . import pluginutils
+  pluginutils.__ctx = ctx
+  pluginutils.__name = f'{template} {dest} --'
+  template_path = B.findTemplate(template)
+  res, help = B.execTemplate(template_path, dest, args)
+  if not res :
+    click.echo(help)
+
+def bind_skip_after_double_dash_parse_args(cmd):
+  ori = cmd.parse_args
+  def parse_args(self, ctx, args):
+    try:
+      ind = args.index('--')
+    except ValueError :
+      return ori(ctx, args)
+    n_args = args[:ind]
+    ret = ori(ctx, n_args)
+    ctx.params['args'] = args[ind+1:]
+    return ret
+  cmd.parse_args = parse_args.__get__(cmd, cmd.__class__)
+  return
+
+try:
+  bind_skip_after_double_dash_parse_args(gen)
+except:
+  import pdb; pdb.xpm()
+  raise
 
 
