@@ -46,7 +46,7 @@ class Include(object):
       _locals = C(**self.base_locals, **_locals)
       out = io.StringIO()
       with p.open('r') as in_f :
-        Backend.processFile(tempiny, in_f, out, _locals, p, None)
+        Backend.tempinyFile(tempiny, in_f, out, _locals, p, None)
       val = out.getvalue()
     else:
       val = p.read_text()
@@ -235,14 +235,6 @@ class Backend(object):
     return p
 
   @staticmethod
-  def processFile(tempiny, in_f, out_f, base_locals, in_p, out_p):
-    _locals = C(**base_locals)
-    _locals.dest = out_p
-    _locals.parent = out_p.parent if out_p is not None else None
-    template = tempiny.compile(in_f)
-    template(out_f, {}, _locals)
-
-  @staticmethod
   def getFirstMatch(l, path):
     """
     Get the second item of the first match on the frist item in a list of couples
@@ -282,6 +274,28 @@ class Backend(object):
     else:
       return None
       
+
+  @staticmethod
+  def tempinyFile(tempiny, in_f, out_f, base_locals, in_p, out_p):
+    _locals = C(**base_locals)
+    _locals.dest = out_p
+    _locals.parent = out_p.parent if out_p is not None else None
+    template = tempiny.compile(in_f)
+    template(out_f, {}, _locals)
+  
+  @classmethod
+  def processFile(cls, in_p, out_p, is_opt, is_template, base_locals, tempiny_l):
+    if is_opt :
+      if out_p.exists() :
+        return
+    out_p.parent.mkdir(parents=True, exist_ok=True)
+    if is_template :
+      tempiny = cls.getFirstMatch(tempiny_l, out_p)
+      with in_p.open('r') as in_f, out_p.open('w') as out_f :
+        cls.tempinyFile(tempiny, in_f, out_f,  base_locals, in_p, out_p)
+    else:
+      shutil.copyfile(in_p, out_p)
+    
   
   def execTemplate(self, template_path : Path, dest : str, args):
     from hl037utils.config import Config as C
@@ -341,16 +355,7 @@ class Backend(object):
         out_p, is_opt, is_template = self.parseFilePath(out / in_p.name, file_name_parser, ( pm for pm, _ in pathmod_stack ))
         if not out_p :
           continue
+        self.processFile(in_p, out_p, is_opt, is_template, base_locals, tempiny_l)
         
-        if is_opt :
-          if out_p.exists() :
-            continue
-        out_p.parent.mkdir(parents=True, exist_ok=True)
-        if is_template :
-          tempiny = self.getFirstMatch(tempiny_l, out_p)
-          with in_p.open('r') as in_f, out_p.open('w') as out_f :
-            self.processFile(tempiny, in_f, out_f,  base_locals, in_p, out_p)
-        else:
-          shutil.copyfile(in_p, out_p)
     return True, help
 
