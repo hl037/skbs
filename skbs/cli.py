@@ -89,6 +89,7 @@ def install(src_directory, name, symlink):
   """
   Install a new template
   """
+  src_directory = Path(src_directory)
   if name is None :
     name = src_directory.name
   f = B.installTemplate(name, src_directory, symlink)

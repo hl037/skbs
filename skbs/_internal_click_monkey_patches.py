@@ -1,6 +1,8 @@
 
+import sys
 import click
 from contextlib import contextmanager
+from dbug import *
 
 def tryImport(*args):
   try:
@@ -8,10 +10,11 @@ def tryImport(*args):
   except:
     return None
 
+# termui is used to implement prompt
 __click_sm_names = [
   '_bashcomplete',
   '_compat',
-  '_termui_impl',
+  #'_termui_impl',
   '_textwrap',
   '_unicodefun',
   '_winconsole',
@@ -21,7 +24,7 @@ __click_sm_names = [
   'formatting',
   'globals',
   'parser',
-  'termui',
+  #'termui',
   'testing',
   'types',
   'utils',
@@ -39,22 +42,31 @@ __click_modules = [
 #Dvar(r"""__click_modules""")
 __click_modules.append(click)
 
-def nop(*args, **kwargs):
-  pass
+class Echo(object):
+  def __init__(self, stderr):
+    self._echo = click.echo
+    self._secho = click.secho
+    self.stderr = stderr
+  def echo(self, message=None, file=sys.stdout, nl=True, err=False, color=None):
+      return self._echo(message, self.stderr, nl, False, color)
+
+  def secho(self, message=None, file=sys.stdout, nl=True, err=False, color=None, **styles):
+      return self._secho(message, self.stderr, nl, False, color, **styles)
+    
+    
 
 @contextmanager
-def silentClick():
-  echo = click.echo
-  secho = click.secho
+def silentClick(stderr):
+  new_echo = Echo(stderr)
   for sm in __click_modules :
-    sm.echo = nop
-    sm.secho = nop
+    sm.echo = new_echo.echo
+    sm.secho = new_echo.secho
   try:
     yield
   finally:
     for sm in __click_modules :
-      sm.echo = echo
-      sm.secho = secho
+      sm.echo = new_echo._echo
+      sm.secho = new_echo._secho
 
 class CliError(Exception):
   def __init__(self, ctx):

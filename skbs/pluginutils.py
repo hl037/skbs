@@ -1,6 +1,7 @@
 
+import io
 import click
-from click.exceptions import Exit, Abort
+from click.exceptions import Exit, Abort, ClickException
 from contextlib import contextmanager
 from ._internal_click_monkey_patches import CliError
 
@@ -31,17 +32,20 @@ def invokeCmd(cmd, args, **extra):
   **extra are passed to cmd.make_context
   """
   from ._internal_click_monkey_patches import __get_help_option, silentClick
-  try :
-    with silentClick() :
-      cmd.get_help_option = __get_help_option.__get__(cmd, cmd.__class__)
+  stderr = io.StringIO()
+  with silentClick(stderr):
+    try :
       ctx = cmd.make_context(__name, args, parent = __ctx, **extra)
       cmd.invoke(ctx)
-  except Exit : 
-    import pdb; pdb.xpm()
-    pass
-  except CliError as cli_err:
-    raise PluginError(cli_err.ctx.get_help())
-  except Exception :
-    raise PluginError(ctx.get_help())
+    except Exit : 
+      pass
+    except ClickException as exc : 
+      exc.show(file=stderr)
+    except Exception :
+      import pdb; pdb.xpm()
+      raise PluginError(ctx.get_help())
+  err = stderr.getvalue()
+  if err :
+    raise PluginError(err)
   
 

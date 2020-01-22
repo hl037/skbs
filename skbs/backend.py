@@ -188,7 +188,7 @@ class Backend(object):
       with path.open('r') as f :
         obj = compile(f.read(), path, 'exec')
       try:
-        exec(obj, {}, g)
+        exec(obj, g.asDict(), g)
       except EndOfPlugin:
         pass
     help = g.get('help', 'No help provided for this template')
