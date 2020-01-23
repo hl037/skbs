@@ -3,14 +3,14 @@ from pathlib import Path
 import traceback
 from contextlib import contextmanager
 from functools import wraps
-from hl037utils.config import Config as C
 import pkg_resources
 import os
 import shutil
-from .pluginutils import EndOfPlugin, PluginError
+from .pluginutils import Config as C, EndOfPlugin, PluginError, ExcludeFile, exclude, pluginError, endOfTemplate, invokeCmd
 from tempiny import Tempiny
 from itertools import accumulate
 import io
+import click
 
 #from dbug import *
 
@@ -60,11 +60,18 @@ class FileNameParser(object):
   """
   Remove template, opt or raw prefixes
   """
-  def __init__(self, opt_prefix, force_prefix, raw_prefix, template_prefix):
+  def __init__(self, opt_prefix, force_prefix, raw_prefix, template_prefix, dir_template_filename = None):
     self.opt_prefix = opt_prefix
     self.force_prefix = force_prefix
     self.template_prefix = template_prefix
     self.raw_prefix = raw_prefix 
+    if dir_template_filename is not None :
+      self.dir_template_filename = dir_template_filename
+    else :
+      self.dir_template_filename = template_prefix
+      if self.dir_template_filename is None :
+        self.dir_template_filename = Backend.TEMPLATE_PREFIX
+        
 
   def parse(self, name:str):
     is_opt = False
@@ -178,9 +185,13 @@ class Backend(object):
       args = args,
       ask_help = ask_help,
       C=C,
+      click=click,
+      invokeCmd = invokeCmd,
       EndOfPlugin=EndOfPlugin,
       PluginError=PluginError,
+      pluginError=pluginError,
       inside_skbs_plugin=True,
+      Tempiny=Tempiny,
       dest=dest if not ask_help else None,
     )
     if path.is_file() :
@@ -191,7 +202,7 @@ class Backend(object):
         exec(obj, g.asDict(), g)
       except EndOfPlugin:
         pass
-    help = g.get('help', 'No help provided for this template')
+    help = next(( h for k in ('__doc__', 'help') if (h := g.get(k)) ), 'No help provided for this template' ) 
     if ask_help :
       raise PluginError(help)
     conf = g.get('conf')
@@ -212,6 +223,7 @@ class Backend(object):
       conf.get('force_prefix', self.FORCE_PREFIX),
       conf.get('raw_prefix', self.RAW_PREFIX),
       conf.get('template_prefix', self.TEMPLATE_PREFIX),
+      conf.get('dir_template_filename', None),
     )
     include_dirname = conf.get('include_dirname', self.INCLUDE_DIRNAME)
     pathmod_filename = conf.get('pathmod_filename', self.PATHMOD_FILENAME)
@@ -281,25 +293,59 @@ class Backend(object):
     _locals.dest = out_p
     _locals.parent = out_p.parent if out_p is not None else None
     template = tempiny.compile(in_f)
-    template(out_f, {}, _locals)
+    return template(out_f, {}, _locals)
   
   @classmethod
-  def processFile(cls, in_p, out_p, is_opt, is_template, base_locals, tempiny_l):
-    if is_opt :
-      if out_p.exists() :
-        return
-    out_p.parent.mkdir(parents=True, exist_ok=True)
+  def processFile(cls, in_p, out_p, is_opt, is_template, base_locals, tempiny_l, dest):
     if is_template :
+      tmp_out_f = io.StringIO()
       tempiny = cls.getFirstMatch(tempiny_l, out_p)
-      with in_p.open('r') as in_f, out_p.open('w') as out_f :
-        cls.tempinyFile(tempiny, in_f, out_f,  base_locals, in_p, out_p)
+      with in_p.open('r') as in_f :
+        _locals, exc = cls.tempinyFile(tempiny, in_f, tmp_out_f,  base_locals, in_p, out_p)
+        if exc :
+          try :
+            raise exc
+          except EndOfPlugin:
+            pass
+          except ExcludeFile:
+            return
+      out_p = _locals.get('new_path', out_p)
+      if out_p is None :
+        return
+      out_p = dest / out_p
+      if is_opt :
+        if out_p.exists() :
+          return
+      out_p.parent.mkdir(parents=True, exist_ok=True)
+      with out_p.open('w') as out_f :
+        out_f.write(tmp_out_f.getvalue())
+      tmp_out_f.close()
     else:
+      out_p = dest / out_p
+      if is_opt :
+        if out_p.exists() :
+          return
       shutil.copyfile(in_p, out_p)
-    
+  @staticmethod
+  def processDir(base_locals, in_p, out_p, file_name_parser):
+    path = in_p / file_name_parser.dir_template_filename
+    if not path.exists() :
+      return out_p
+    with path.open('r') as f :
+      obj = compile(f.read(), path, 'exec')
+    _locals = C(**base_locals)
+    _locals.dest = out_p
+    try:
+      exec(obj, _locals.asDict(), _locals)
+    except EndOfPlugin:
+      pass
+    except ExcludeFile:
+      return None
+    return _locals.get('new_path', out_p)
   
   def execTemplate(self, template_path : Path, dest : str, args):
     from hl037utils.config import Config as C
-    ask_help = (dest == '@help')
+    ask_help = (dest == '@help') or (args and args[0] == '--help')
     try:
       conf, plugin, help = self.parsePlugin(template_path / 'plugin.py', args, dest, ask_help)
     except PluginError as err:
@@ -309,7 +355,7 @@ class Backend(object):
     tempiny_l, file_name_parser, include_dirname, pathmod_filename = self.parseConf(conf)
     
     d = template_path / 'root'
-    stack = [(False, d, dest)]
+    stack = [(False, d, Path(''))]
     include_paths = []
     pathmod_stack = []
     base_locals = C(
@@ -318,6 +364,8 @@ class Backend(object):
       C=C,
       removePrefix=file_name_parser,
       file_name_parser=file_name_parser,
+      exclude=exclude,
+      endOfTemplate=endOfTemplate,
     )
     base_locals.include = Include(include_paths, tempiny_l, base_locals, file_name_parser)
     while stack :
@@ -331,7 +379,7 @@ class Backend(object):
           else:
             pathmod_stack[0][1] -= 1
         continue
-
+      (dest / out).mkdir(parents=True, exist_ok=True)
       stack.append((True, src, out))
       pathmod = self.parsePathMod(src / '__pathmod.py', base_locals)
       if pathmod is None :
@@ -340,13 +388,15 @@ class Backend(object):
       else:
         pathmod_stack.insert(0, [pathmod, 0])
       include_paths.insert(0, src/'__include')
-      out.mkdir(parents=True, exist_ok=True)
+      (dest / out).mkdir(parents=True, exist_ok=True)
+      
       for in_p in src.iterdir() :
-        if in_p.name == '__pathmod.py' :
+        if in_p.name in ('__pathmod.py', file_name_parser.dir_template_filename) :
           continue
         if in_p.is_dir() :
           if in_p.name != '__include' :
             out_path = self.parseFilePath(out / in_p.name, file_name_parser, ( pm for pm, _ in pathmod_stack ), is_dir=True)
+            out_path = self.processDir(base_locals, in_p, out_path, file_name_parser)
             if not out_path :
               continue
             stack.append((False, in_p, out_path))
@@ -355,7 +405,7 @@ class Backend(object):
         out_p, is_opt, is_template = self.parseFilePath(out / in_p.name, file_name_parser, ( pm for pm, _ in pathmod_stack ))
         if not out_p :
           continue
-        self.processFile(in_p, out_p, is_opt, is_template, base_locals, tempiny_l)
+        self.processFile(in_p, out_p, is_opt, is_template, base_locals, tempiny_l, dest)
         
     return True, help
 

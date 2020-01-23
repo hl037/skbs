@@ -1,6 +1,6 @@
 
 import appdirs
-from hl037utils.config import Config as C
+from skbs.pluginutils import Config as C
 
 from pathlib import Path
 

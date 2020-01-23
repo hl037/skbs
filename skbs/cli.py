@@ -152,7 +152,9 @@ def bind_skip_after_double_dash_parse_args(cmd):
     try:
       ind = args.index('--')
     except ValueError :
-      return ori(ctx, args)
+      ori(ctx, args)
+      ctx.params['args'] = []
+      return
     n_args = args[:ind]
     ret = ori(ctx, n_args)
     ctx.params['args'] = args[ind+1:]

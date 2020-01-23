@@ -19,7 +19,7 @@ def assertFilesEqual(f1, f2):
 @pytest.fixture()
 def freshBackend(tmp_path):
   from skbs.backend import Backend
-  from hl037utils.config import Config as C
+  from skbs.pluginutils import Config as C
   config = C(
     verbose=False,
     template_dir=tmp_path
@@ -93,7 +93,7 @@ def test_installTemplate_over(freshBackend, datadir):
 def simpleBackend(tmpdir_factory):
   tmp_path = tmpdir_factory.mktemp('dir')
   from skbs.backend import Backend
-  from hl037utils.config import Config as C
+  from skbs.pluginutils import Config as C
   config = C(
     verbose=False,
     template_dir=tmp_path
@@ -196,13 +196,35 @@ def test_pathmod(simpleBackend, tmp_path, datadir):
   doTestProcessing2(simpleBackend, tmp_path, datadir)
   
   
-def test_pathmod_multi_deep(simpleBackend, tmp_path, datadir):
+def test_pathmod(simpleBackend, tmp_path, datadir):
   doTestProcessing2(simpleBackend, tmp_path, datadir)
+  
+  
+def test_infile_pathmod(simpleBackend, tmp_path, datadir):
+  doTestProcessing(simpleBackend, tmp_path, datadir)
+  
+
+def test_dir_template(simpleBackend, tmp_path, datadir):
+  doTestProcessing(simpleBackend, tmp_path, datadir)
+  
+  
+def test_end_of_template(simpleBackend, tmp_path, datadir):
+  doTestProcessing(simpleBackend, tmp_path, datadir)
   
 def test_help(simpleBackend, datadir):
   B, _ = simpleBackend
   t = Path(datadir['t'])
   b, h = B.execTemplate(t, '@help', None)
+  assert not b
+  assert 'Dummy help' == h
+  
+def test_help_docstring(simpleBackend, datadir):
+  B, _ = simpleBackend
+  t = Path(datadir['t'])
+  b, h = B.execTemplate(t, '@help', None)
+  assert not b
+  assert 'Dummy help' == h
+  b, h = B.execTemplate(t, '_help', ['--help'])
   assert not b
   assert 'Dummy help' == h
   

@@ -1,5 +1,5 @@
 """
-Template {{dest.parent.name}}
+Template 
 """
 
 try:
@@ -13,8 +13,8 @@ if ask_help :
 
 # conf = C(
 #   #   Predefined template syntax are Tempiny.PY, Tempiny.C and Tempiny.TEX :
-#   #   Tempiny.C  = dict(stmt_line_start=r'//#', begin_expr='{{', end_expr='}}')
-#   #   Tempiny.PY = dict(stmt_line_start=r'##', begin_expr='{{', end_expr='}}')
+#   #   Tempiny.C  = dict(stmt_line_start=r'//#', begin_expr=', end_expr=')
+#   #   Tempiny.PY = dict(stmt_line_start=r'##', begin_expr=', end_expr=')
 #   #   Tempiny.TEX = dict(stmt_line_start=r'%#', begin_expr='<<', end_expr='>>')
 #   # tempiny = [
 #   #   ('*' : Tempiny.PY)

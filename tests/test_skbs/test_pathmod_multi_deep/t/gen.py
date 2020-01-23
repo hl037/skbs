@@ -1,7 +1,7 @@
 
 try:
   from pathlib import Path
-  from hl037utils.config import Config as C
+  from skbs.pluginutils import Config as C
 
   root = Path('.')/'root'
 

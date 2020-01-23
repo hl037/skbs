@@ -1,7 +1,7 @@
 
 import appdirs
 import os
-from hl037utils.config import Config as C
+from skbs.pluginutils import Config as C
 
 config_dir = appdirs.user_config_dir('skbs', 'Léo Flaventin Hauchecorne')
 

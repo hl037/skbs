@@ -1,0 +1,3 @@
+## new_path = dest.with_name('new_name')
+good if name is new_name
+should be evaluated : {{42}}
