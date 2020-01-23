@@ -19,12 +19,9 @@ LONG_DESC = read_file('README.rst') + '\n\n' + read_file('HISTORY.rst')
 
 EXTRAS = {}
 
-if sys.version_info < (3,):
-    EXTRAS['use_2to3'] = True
-
 setup(
     name='skbs',
-    version='0.1.dev1',
+    version='1.0',
     description='SKeleton BootStrap, a full-powered yet trivial to use and customize template based bootstrap tool',
     long_description=LONG_DESC,
     author='Léo Flaventin Hauchecorne',
