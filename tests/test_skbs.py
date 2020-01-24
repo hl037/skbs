@@ -209,7 +209,28 @@ def test_dir_template(simpleBackend, tmp_path, datadir):
   
   
 def test_empty_dirs(simpleBackend, tmp_path, datadir):
-  doTestProcessing(simpleBackend, tmp_path, datadir)
+  B, _ = simpleBackend
+  t = Path(datadir['t'])
+  r = Path(tmp_path/'r')
+  dirs = [
+    'to_keep2',
+    'to_keep2/to_keep2_to_keep',
+    'to_keep2/to_keep2_to_keep2',
+    'to_keep2/moved',
+    'to_keep',
+    'to_keep/to_keep_to_keep2',
+    'to_keep/to_keep_to_keep',
+    'to_keep/moved',
+    'moved',
+    'moved/to_move_to_keep',
+    'moved/to_move_to_keep2',
+    'moved/moved',
+  ]
+  for d in dirs :
+    Dvar(r"""d, r/d""")
+    (r/d).mkdir(parents=True, exist_ok=True)
+  B.execTemplate(t, str(tmp_path/'o'), [42, 43])
+  assertDirsEqual(r, tmp_path/'o')
   
   
 def test_end_of_template(simpleBackend, tmp_path, datadir):
