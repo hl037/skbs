@@ -208,8 +208,13 @@ def test_dir_template(simpleBackend, tmp_path, datadir):
   doTestProcessing(simpleBackend, tmp_path, datadir)
   
   
+def test_empty_dirs(simpleBackend, tmp_path, datadir):
+  doTestProcessing(simpleBackend, tmp_path, datadir)
+  
+  
 def test_end_of_template(simpleBackend, tmp_path, datadir):
   doTestProcessing(simpleBackend, tmp_path, datadir)
+  
   
 def test_help(simpleBackend, datadir):
   B, _ = simpleBackend
