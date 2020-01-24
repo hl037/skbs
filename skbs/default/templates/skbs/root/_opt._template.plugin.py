@@ -25,6 +25,6 @@ if ask_help :
 #   template_prefix = '_template.',
 #   #   pathmod_filename = '__pathmod',
 # )
-# conf.dir_template_filename = conf.tamplte_prefix
+# conf.dir_template_filename = conf.template_prefix
 
 
