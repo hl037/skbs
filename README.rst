@@ -107,34 +107,6 @@ The synthax used is the Tempiny one.
 
 First an example to demonstrate all its features ::
 
-   ## global a, b, c
-   
-   This text will be printed as it is
-   
-   lines starting with '##' (or a user-configured prefix) are be python code.
-   
-   ## a=5 # this won't be printed
-   ## # this is a comment in the python script. Won't be printed.
-   
-   if/else/for/while/with/try/except etc blocks don't need indentation. instead, a line containing only '## -' marks the block end.
-   
-   ## for i in range(a) :
-   ##   b = a + 1 # you may indent
-   ## c = a +2 # or not, still in the for block.
-   This text will be printed 5 times (a = {{a}}) Btw, between a double brace (2 '{'), you can put expression that will be converted to str, and printed instead.
-   To escape it, just do : {{'{{'}}...
-   ##   for j in range(2) :
-   You can also nest loops
-   ##   -
-   ## # ↑ end of inner loop
-   ## -
-   ## # end of outer loop
-   
-   Expression can be as complex you want as long as they are valid python expression returning something that can be transformed to a string :
-   {{ ";".join( str(i) + f' - {a=},{b=},{c=}' for i in range(2)) }}
-
-will be touputed as ::
-
    ## # need to declare variables that may be used in a generator as "globals" because of the behavious as : https://stackoverflow.com/a/31298828/1745291
    ## global a, b, c
    
@@ -151,8 +123,8 @@ will be touputed as ::
    ##   b = a + 1 # you may indent
    ## c = a +2 # or not, still in the for block.
    This text will be printed 5 times (a = {{a}}) Btw, between a double brace (2 '{'), you can put expression that will be converted to str, and printed instead.
-   To escape it, just do : {{'{{'}}...
-   ##   for j in range(2) :
+   To escape it, two variables are defined by skbs (not tempiny) : `be` (begin of expression) and `ee` (end of expression) : {{be}} and {{ee}}
+   ##   for j in range(3) :
    You can also nest loops
    ##   -
    ## # ↑ end of inner loop
@@ -161,6 +133,45 @@ will be touputed as ::
    
    Expression can be as complex you want as long as they are valid python expression returning something that can be transformed to a string :
    {{ ";".join( str(i) + f' - {a=},{b=},{c=}' for i in range(2)) }}
+
+will be touputed as ::
+
+   This text will be printed as it is
+   
+   lines starting with '##' (or a user-configured prefix) are be python code.
+   
+   
+   if/else/for/while/with/try/except etc blocks don't need indentation. instead, a line containing only '## -' marks the block end.
+   
+   This text will be printed 5 times (a = 5) Btw, between a double brace (2 '{'), you can put expression that will be converted to str, and printed instead.
+   To escape it, two variables are defined by skbs (not tempiny) : `be` (begin of expression) and `ee` (end of expression) : {{ and }}
+   You can also nest loops
+   You can also nest loops
+   You can also nest loops
+   This text will be printed 5 times (a = 5) Btw, between a double brace (2 '{'), you can put expression that will be converted to str, and printed instead.
+   To escape it, two variables are defined by skbs (not tempiny) : `be` (begin of expression) and `ee` (end of expression) : {{ and }}
+   You can also nest loops
+   You can also nest loops
+   You can also nest loops
+   This text will be printed 5 times (a = 5) Btw, between a double brace (2 '{'), you can put expression that will be converted to str, and printed instead.
+   To escape it, two variables are defined by skbs (not tempiny) : `be` (begin of expression) and `ee` (end of expression) : {{ and }}
+   You can also nest loops
+   You can also nest loops
+   You can also nest loops
+   This text will be printed 5 times (a = 5) Btw, between a double brace (2 '{'), you can put expression that will be converted to str, and printed instead.
+   To escape it, two variables are defined by skbs (not tempiny) : `be` (begin of expression) and `ee` (end of expression) : {{ and }}
+   You can also nest loops
+   You can also nest loops
+   You can also nest loops
+   This text will be printed 5 times (a = 5) Btw, between a double brace (2 '{'), you can put expression that will be converted to str, and printed instead.
+   To escape it, two variables are defined by skbs (not tempiny) : `be` (begin of expression) and `ee` (end of expression) : {{ and }}
+   You can also nest loops
+   You can also nest loops
+   You can also nest loops
+   
+   Expression can be as complex you want as long as they are valid python expression returning something that can be transformed to a string :
+   0 - a=5,b=6,c=7;1 - a=5,b=6,c=7
+
 
 Basically, there are 3 contexts : 
 
@@ -546,6 +557,14 @@ endOfTemplate()
 ---------------
 
 Same as function return : stop reading the template here, but keep and copy to destination what has been read.
+
+sls, be, ee
+-----------
+
+Tempiny token configuration : 
+- sls : Stmpt_Line_Start
+- be : Begin of Expression
+- ee : End of Expression
 
 ---------------------------------------
 

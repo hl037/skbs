@@ -46,7 +46,14 @@ class Include(object):
       _locals = C(**self.base_locals, **_locals)
       out = io.StringIO()
       with p.open('r') as in_f :
-        Backend.tempinyFile(tempiny, in_f, out, _locals, p, None)
+        _locals, exc = Backend.tempinyFile(tempiny, in_f, out, _locals, p, None)
+        if exc :
+          try :
+            raise exc
+          except EndOfPlugin:
+            pass
+          except ExcludeFile:
+            return ''
       val = out.getvalue()
     else:
       val = p.read_text()
@@ -160,9 +167,11 @@ class Backend(object):
 
   def installTemplate(self, name, src, symlink=False):
     dest = self.config.template_dir / 'templates' / name
+    if dest.exists() :
+      self.uninstallTemplate(name)
     if symlink :
       dest.parent.mkdir(parents=True, exist_ok=True)
-      dest.symlink_to(src)
+      dest.symlink_to(src.absolute())
     else :
       from distutils.dir_util import copy_tree
       copy_tree(str(src), str(dest))
@@ -177,10 +186,11 @@ class Backend(object):
       remove_tree(str(dest))
     return dest
 
-  @staticmethod
-  def parsePlugin(path, args, dest, ask_help):
+  def parsePlugin(self, path, args, dest, ask_help):
     tempiny = None
     plugin = None
+    def invokeTemplate(_template_name, _dest, _args):
+      self.invokeTemplate(_template_name, str(Path(dest)/_dest), _args)
     g = C(
       args = args,
       ask_help = ask_help,
@@ -192,6 +202,7 @@ class Backend(object):
       pluginError=pluginError,
       inside_skbs_plugin=True,
       Tempiny=Tempiny,
+      invokeTemplate=invokeTemplate,
       dest=dest if not ask_help else None,
     )
     if path.is_file() :
@@ -292,9 +303,10 @@ class Backend(object):
     _locals = C(**base_locals)
     _locals.dest = out_p
     _locals.parent = out_p.parent if out_p is not None else None
+    _locals.sls, _locals.be, _locals.ee = tempiny.conf
     template = tempiny.compile(in_f)
     return template(out_f, {}, _locals)
-  
+
   @classmethod
   def processFile(cls, in_p, out_p, is_opt, is_template, base_locals, tempiny_l, dest):
     if is_template :
@@ -405,7 +417,9 @@ class Backend(object):
         out_p, is_opt, is_template = self.parseFilePath(out / in_p.name, file_name_parser, ( pm for pm, _ in pathmod_stack ))
         if not out_p :
           continue
-        self.processFile(in_p, out_p, is_opt, is_template, base_locals, tempiny_l, dest)
-        
+        self.processFile(in_p, out_p, is_opt, is_template, base_locals, tempiny_l, dest)    
     return True, help
+
+  def invokeTemplate(self, template_name, dest, args):
+    self.execTemplate(self.findTemplate(template_name), dest, args)
 
