@@ -342,7 +342,12 @@ Some python symbols are predefined :
 
  * ``plugin`` or ``_p`` : reference to the ``plugin`` variable as defined in ``__plugin.py``
  * ``dest`` : The destination file of the template
- *
+
+Sections
+--------
+
+A template can define section to overwrite only some parts of a file.
+[TODO: explain better]
 
 include()
 ---------
@@ -437,7 +442,7 @@ pluginError(help_msg)
 
 Shortcut to raise a PluginError
 
-inside_skbsèplugin : bool
+inside_skbs_plugin : bool
 -------------------------
 
 Will be set to ``True`` when the plugin is called from skbs, else, it won't be define.
@@ -506,7 +511,7 @@ Same as ``__doc__``. Prefer ``__doc__``
 plugin = ...
 ------------
 
-This variable will be available everywhere else under the refereence ``_p`` and ``plugin``.
+This variable will be available everywhere else under the reference ``_p`` and ``plugin``.
 
 
 ---------------------------------------
@@ -558,6 +563,35 @@ endOfTemplate()
 
 Same as function return : stop reading the template here, but keep and copy to destination what has been read.
 
+beginSection(n=1, f=None, placeholder=None, overwrite=True)
+-----------------------------------------------------------
+
+Start an overwritten section.
+``f`` a calback function ``f(lines, i)`` where ``lines`` is a list of the lines in the original file. The function should return true if it matches.
+
+If ``f`` is None, Then the ``n`` following lines in the "virtually" outputed template (as if it were run for the first time) will be the line to match exactly in the original file to tag the section start.
+
+If a placeholder is specified and the original file does not have this section, then it will be put just before the placeholder (so that further added sections go always to the end)
+
+endSection(n=1, f=None)
+-----------------------
+
+End an overwritten section.
+``f`` is a calback function ``f(lines, i)`` where ``lines`` is a list of the lines in the original file. The function should return true if it matches.
+
+If ``f`` is None, Then the ``n`` previous lines in the "virtually" outputed template (as if it were run for the first time) will be the line to match exactly in the original file to tag the section end.
+
+placeholder(name, n=1, f=None)
+------------------------------
+
+Defines a placeholder
+
+``name`` is the name of the placeholder
+``f`` is a calback function ``f(lines, i)`` where ``lines`` is a list of the lines in the original file. The function should return true if it matches.
+
+If ``f`` is None, Then the ``n`` previous lines in the "virtually" outputed template (as if it were run for the first time) will be the line to match exactly in the original file to tag the placeholder.
+
+
 sls, be, ee
 -----------
 
@@ -576,13 +610,22 @@ Tipically used like this to rename dynaically the file ::
 
    ## new_path = dest.with_name('new_name')
 
+use_sections = ...
+------------------
+
+If true force usage of sections. If None, use section if at least one section is defined. (default : None)
+
+keep_only_sections = ...
+------------------------
+
+If true, will overwrite the original only keeping its sections, else, only the sections will be replaced in the original file. (default : True)
  
 ---------------------------------------
   
 _template. (or what ``conf.dir_template_filename`` contains)
 ============================================================
 
-This file is a read as python code (not tempiny).
+This file is read as python code (not tempiny).
 
 The same symbols than in file templates are defined except include.
 

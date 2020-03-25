@@ -1,0 +1,20 @@
+
+Hors section
+
+TEST_Section1 and other stuff
+
+custom begin, standard end n=1
+
+FIN
+
+Between sections
+
+TEST_Section2
+
+standard begin n=1, custom end
+
+FIN and other stuff
+
+
+End of file
+

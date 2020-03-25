@@ -48,14 +48,14 @@ def test_installDefaultTemplates_symlink(freshBackend, datadir):
   
 def test_installTemplate(freshBackend, datadir):
   B, tmp_path = freshBackend
-  t1 = datadir['t1']
+  t1 = Path(datadir['t1'])
   B.installTemplate('t1', t1, False)
   target_templates = tmp_path / 'templates/t1'
   assertDirsEqual(target_templates, t1)
 
 def test_uninstallTemplate(freshBackend, datadir):
   B, tmp_path = freshBackend
-  t1 = datadir['t1']
+  t1 = Path(datadir['t1'])
   B.installTemplate('t1', t1, False)
   B.uninstallTemplate('t1')
   target_templates = tmp_path / 'templates/t1'
@@ -63,14 +63,14 @@ def test_uninstallTemplate(freshBackend, datadir):
   
 def test_installTemplate_symlink(freshBackend, datadir):
   B, tmp_path = freshBackend
-  t1 = datadir['t1']
+  t1 = Path(datadir['t1'])
   B.installTemplate('t1', t1, True)
   target_templates = tmp_path / 'templates/t1'
   assertDirsEqual(target_templates, t1)
 
 def test_uninstallTemplate_symlink(freshBackend, datadir):
   B, tmp_path = freshBackend
-  t1 = datadir['t1']
+  t1 = Path(datadir['t1'])
   B.installTemplate('t1', t1, True)
   B.uninstallTemplate('t1')
   target_templates = tmp_path / 'templates/t1'
@@ -78,8 +78,8 @@ def test_uninstallTemplate_symlink(freshBackend, datadir):
   
 def test_installTemplate_over(freshBackend, datadir):
   B, tmp_path = freshBackend
-  t1 = datadir['t1']
-  t2 = datadir['t2']
+  t1 = Path(datadir['t1'])
+  t2 = Path(datadir['t2'])
   B.installTemplate('t1', t1)
   B.installTemplate('t1', t2)
   target_templates = tmp_path / 'templates/t1'

@@ -1,0 +1,53 @@
+
+This is outside a section
+
+SECTION1 BEGIN
+
+Only one line match
+
+END SECTION1
+
+SECTION2 BEGIN
+==============
+--------------
+
+3 lines match begin
+2 lines match end
+
+------------
+END SECTION2
+
+
+One line section :
+
+TEST ONLINER SECTION
+
+This is the end of overwrite=True
+
+This is the begin of overwrite=False
+
+This is outside a section
+
+SECTION2 BEGIN
+
+Only one line match
+
+END SECTION2
+
+SECTION3 BEGIN
+==============
+--------------
+
+3 lines match begin
+2 lines match end
+
+------------
+END SECTION3
+
+
+One line section :
+
+TEST ONLINER SECTION 2
+
+This is the end of overwrite=False
+
