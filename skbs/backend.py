@@ -119,6 +119,9 @@ class OutStream(object):
   class AlreadyInSectionError(RuntimeError):
     pass
 
+  class PlaceholderWithKeepOnlySections(RuntimeError):
+    pass
+
   @staticmethod
   def matcher(m_lines, begin):
     if begin :
@@ -154,11 +157,15 @@ class OutStream(object):
       self.name = name
       self.f = f
       self.begin_line = begin_line
+      self.ori_end_line = begin_line
       self.ori_begin_line = None
+      self.ori_end_line = None
       self.sections = []
+      self.begin = f
+      self.end = lambda *args, **kwargs:True
 
     def __repr__(self):
-      return f'Placeholder(name={self.name}, f={f}, bl={self.begin_line}, o_bl={self.ori_begin_line}, n_sec={len(self.sections)})'
+      return f'Placeholder(name={self.name}, f={self.f}, bl={self.begin_line}, o_bl={self.ori_begin_line}, n_sec={len(self.sections)})'
       
   def __init__(self):
     self.lines = []
@@ -207,14 +214,19 @@ class OutStream(object):
     @param n : If ``f`` is None, Then the ``n`` previous lines in the "virtually" outputed template (as if it were run for the first time) will be the line to match exactly in the original file to tag the placeholder.
     """
     if self.cur_section is not None :
-      raise OutStream.AlreadyInSectionError("A placeholder cannot be plasced inside a section")
-    self._placeholders.append(len(self.lines), n, f)
+      raise OutStream.AlreadyInSectionError("A placeholder cannot be placed inside a section")
+    self.sections.append((name, len(self.lines), n, f))
   
   def write(self, s):
     self.lines.extend(s.split('\n')[:-1])
   
   def getvalue(self):
     return "\n".join(self.lines) + '\n'
+
+  def newPlacehoder(self, name, i, n, f, /, keep_only_sections):
+    if keep_only_sections :
+      raise self.PlaceholderWithKeepOnlySections("No placeholder can be set if `keep_only_sections` is True") 
+    return self.Placeholder(name, f if f else self.matcher(self.lines[i:i+n], begin=True), i)
   
   def end(self, out_p, use_sections, keep_only_sections):
     """
@@ -225,24 +237,13 @@ class OutStream(object):
     if not use_sections :
       return
 
-    placeholders = [ Placeholder(name, f if f else matcher(self.lines[i:i+n]), i) for name, i, n, f in self._placeholders ]
-    
     with open(out_p) as f :
       lines = [ l[:-1] for l in f ]
-
-    pldict = {}
-    # match placeholders
-    I = iter(range(len(lines)))
-    for p in placeholders :
-      for i in I :
-        if p.f(lines, i) :
-          p.ori_begin_line = i
-          pldict[p.name] = p
-          break
+    
+    candidate_sections = [ s if isinstance(s, self.Section) else self.newPlacehoder(*s, keep_only_sections=keep_only_sections) for s in self.sections ]
     
     sections = []
     # match sections in any order
-    candidate_sections = list(self.sections)
     I = iter(range(len(lines)))
     for i in I:
       j, s = next(
@@ -260,7 +261,9 @@ class OutStream(object):
             sections.append(s)
             break
     # Remaining sections are the one not matched
+    pldict = { pl.name : pl for pl in sections if isinstance(pl, self.Placeholder) }
     
+
     if keep_only_sections :
       # Replace sections in template with original file ones, except if overwrite
       for s in reversed(self.sections) :
@@ -268,21 +271,22 @@ class OutStream(object):
           self.lines[s.begin_line:s.end_line] = lines[s.ori_begin_line:s.ori_end_line]
     else:
       # Merge placeholders and sections
-      elements = sorted(chain(pldict.values(), sections), key=lambda x : x.ori_begin_line, reverse=True)
+      # elements = sorted(chain(pldict.values(), sections), key=lambda x : x.ori_begin_line, reverse=True)
       # Place not matched sections in their placeholder
-      for s in candidate_sections :
+      for s in ( s for s in candidate_sections if isinstance(s, self.Section) ):
         pl = pldict.get(s.placeholder)
         if pl is not None :
           pl.sections.append(s)
       # Replace sections in original file file with template ones except if overwrite False (in this case, only add at placeholder if not present)
-      for e in reversed(self.sections) :
-        if isinstance(e, OutStream.Section) :
+      
+      for e in reversed(sections) :
+        if isinstance(e, self.Section) :
           s = e
           if s.overwrite :
             lines[s.ori_begin_line:s.ori_end_line] = self.lines[s.begin_line:s.end_line]
-        elif isinstance(e, OutStream.Placeholder) :
+        elif isinstance(e, self.Placeholder) :
           pl = e
-          lines[pl.ori_begin_line:pl.ori_begin_line] = sum(self.lines[s.begin_line:s.end_line] for s in pl.sections)
+          lines[pl.ori_begin_line:pl.ori_begin_line] = sum(( self.lines[s.begin_line:s.end_line] for s in pl.sections ), [])
       # Assign original file lines
       self.lines = lines
   def close(self):

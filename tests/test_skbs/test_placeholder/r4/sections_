@@ -1,0 +1,26 @@
+SECTION2 BEGIN
+
+Only one line match OK stay up
+
+END SECTION2
+
+Pas de  PL1
+
+Avant PL2
+
+SECTION2 BEGIN
+==============
+--------------
+
+3 lines match begin FAIL
+2 lines match end FAIL
+
+------------
+END SECTION2
+TEST ONLINER SECTION 2
+PL2
+
+après PL2
+
+
+

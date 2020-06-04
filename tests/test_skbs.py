@@ -272,6 +272,26 @@ def test_sections(simpleBackend, tmp_path, datadir, datadir_copy):
   B.execTemplate(t, str(r2_), None)
   assertDirsEqual(r2, r2_)
 
+def test_placeholder(simpleBackend, tmp_path, datadir, datadir_copy):
+  B, _ = simpleBackend
+  doTestProcessing(simpleBackend, tmp_path, datadir)
+  t = Path(datadir['t'])
+  r1_ = Path(datadir_copy['r1_'])
+  r1 = Path(datadir['r1'])
+  B.execTemplate(t, str(r1_), None)
+  assertDirsEqual(r1, r1_)
+  r2_ = Path(datadir_copy['r2_'])
+  r2 = Path(datadir['r2'])
+  B.execTemplate(t, str(r2_), None)
+  assertDirsEqual(r2, r2_)
+  r3_ = Path(datadir_copy['r3_'])
+  r3 = Path(datadir['r3'])
+  B.execTemplate(t, str(r3_), None)
+  assertDirsEqual(r3, r3_)
+  r4_ = Path(datadir_copy['r4_'])
+  r4 = Path(datadir['r4'])
+  B.execTemplate(t, str(r4_), None)
+  assertDirsEqual(r4, r4_)
   
 
   

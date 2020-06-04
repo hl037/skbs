@@ -1,0 +1,69 @@
+
+This is outside a section.
+This should not appear FAIL
+
+SECTION1 BEGIN
+
+Only one line match OK 
+
+END SECTION1
+
+SECTION1 BEGIN
+==============
+--------------
+
+3 lines match begin OK
+2 lines match end OK
+(overwrite)
+
+------------
+END SECTION1
+
+PL1
+
+FAIL
+One line section : 
+
+TEST ONLINER SECTION
+
+This is the end of overwrite=True
+
+This is the begin of overwrite=False
+
+This is outside a section
+
+FAIL
+
+SECTION2 BEGIN
+
+Only one line match FAIL
+
+END SECTION2
+
+SECTION2 BEGIN
+==============
+--------------
+
+3 lines match begin FAIL
+2 lines match end FAIL
+
+------------
+END SECTION2
+
+
+PL2
+
+FAIL
+One line section :
+
+TEST ONLINER SECTION 2
+
+This is the end of overwrite=False
+FAIL
+
+SECTION3
+FAIL
+SECTION3
+
+FAIL
+

@@ -1,0 +1,27 @@
+SECTION1 BEGIN
+
+Only one line match OK 
+
+END SECTION1
+
+
+Avant PL1
+
+SECTION1 BEGIN
+==============
+--------------
+
+3 lines match begin OK
+2 lines match end OK
+(overwrite)
+
+------------
+END SECTION1
+TEST ONLINER SECTION
+PL1
+
+après PL1
+
+Pas de  PL2
+
+

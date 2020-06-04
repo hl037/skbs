@@ -589,7 +589,7 @@ Defines a placeholder
 ``name`` is the name of the placeholder
 ``f`` is a calback function ``f(lines, i)`` where ``lines`` is a list of the lines in the original file. The function should return true if it matches.
 
-If ``f`` is None, Then the ``n`` previous lines in the "virtually" outputed template (as if it were run for the first time) will be the line to match exactly in the original file to tag the placeholder.
+If ``f`` is None, Then the ``n`` next lines in the "virtually" outputed template (as if it were run for the first time) will be the line to match exactly in the original file to tag the placeholder.
 
 
 sls, be, ee
