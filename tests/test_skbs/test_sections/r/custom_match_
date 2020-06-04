@@ -1,17 +1,14 @@
 
 Hors section OK
 
-## beginSection(f=lambda lines, i:'TEST_Section1' in lines[i], overwrite=False)
 TEST_Section1 and other stuff
 FAIL
 custom begin, standard end n=1
 FAIL
 FIN
-## endSection()
 
 Between sections
 
-## beginSection(overwrite=False)
 TEST_Section2
 FAIL
 
@@ -19,7 +16,6 @@ standard begin n=1, custom end
 FAIL
 
 FIN and other stuff
-## endSection(f=lambda lines, i:'FIN' in lines[i])
 
 
 End of file

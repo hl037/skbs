@@ -263,4 +263,16 @@ def test_help_forced(simpleBackend, tmp_path, datadir):
   assert not (tmp_path/'_').exists()
 
 
+def test_sections(simpleBackend, tmp_path, datadir, datadir_copy):
+  B, _ = simpleBackend
+  doTestProcessing(simpleBackend, tmp_path, datadir)
+  t = Path(datadir['t'])
+  r2_ = Path(datadir_copy['r2_'])
+  r2 = Path(datadir['r2'])
+  B.execTemplate(t, str(r2_), None)
+  assertDirsEqual(r2, r2_)
+
+  
+
+  
 

@@ -1,9 +1,9 @@
 
-This is outside a section
+This is outside a section OK
 
 SECTION1 BEGIN
 
-Only one line match
+Only one line match OK
 
 END SECTION1
 
@@ -11,8 +11,8 @@ SECTION2 BEGIN
 ==============
 --------------
 
-3 lines match begin
-2 lines match end
+3 lines match begin OK
+2 lines match end OK
 
 ------------
 END SECTION2
@@ -27,10 +27,10 @@ This is the end of overwrite=True
 This is the begin of overwrite=False
 
 This is outside a section
-
+ OK
 SECTION2 BEGIN
 
-Only one line match
+Only one line match OK
 
 END SECTION2
 
@@ -38,16 +38,16 @@ SECTION3 BEGIN
 ==============
 --------------
 
-3 lines match begin
-2 lines match end
+3 lines match begin OK
+2 lines match end OK
 
 ------------
 END SECTION3
 
 
-One line section :
+One line section : OK
 
 TEST ONLINER SECTION 2
 
 This is the end of overwrite=False
-
+ OK

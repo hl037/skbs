@@ -1,4 +1,2 @@
-## use_sections = True
-## keep_only_sections = False
 This should not get overwritten, if it is, it's a fail
 

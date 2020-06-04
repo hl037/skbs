@@ -1,38 +1,29 @@
 
-## keep_only_sections = False
+This is outside a section FAIL
 
-This is outside a section.
-This should not appear FAIL
-
-## beginSection()
 SECTION1 BEGIN
 
-Only one line match OK 
+Only one line match FAIL
 
 END SECTION1
-## endSection()
 
-## beginSection(n=3)
 SECTION2 BEGIN
 ==============
 --------------
 
-3 lines match begin OK
-2 lines match end OK
-(overwrite)
+3 lines match begin FAIL
+2 lines match end FAIL
 
 ------------
 END SECTION2
-## endSection(n=2)
 
-FAIL
+
 One line section :
+FAIL
 
-## beginSection()
 TEST ONLINER SECTION
-## endSection()
 
-This is the end of overwrite=True
+This is the end of overwrite=True FAIL
 
 This is the begin of overwrite=False
 
@@ -40,15 +31,12 @@ This is outside a section
 
 FAIL
 
-## beginSection(overwrite=False)
 SECTION2 BEGIN
 
 Only one line match FAIL
 
 END SECTION2
-## endSection()
 
-## beginSection(n=3, overwrite=False)
 SECTION3 BEGIN
 ==============
 --------------
@@ -58,15 +46,13 @@ SECTION3 BEGIN
 
 ------------
 END SECTION3
-## endSection(n=2)
 
-FAIL
+
 One line section :
 
-## beginSection(overwrite=False)
 TEST ONLINER SECTION 2
-## endSection()
 
 This is the end of overwrite=False
+
 FAIL
 

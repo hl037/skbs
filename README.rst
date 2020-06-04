@@ -596,7 +596,7 @@ sls, be, ee
 -----------
 
 Tempiny token configuration : 
-- sls : Stmpt_Line_Start
+- sls : Stmt_Line_Start
 - be : Begin of Expression
 - ee : End of Expression
 

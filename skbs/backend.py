@@ -8,11 +8,9 @@ import os
 import shutil
 from .pluginutils import Config as C, EndOfPlugin, PluginError, ExcludeFile, exclude, pluginError, endOfTemplate, invokeCmd
 from tempiny import Tempiny
-from itertools import accumulate
+from itertools import accumulate, chain
 import io
 import click
-
-#from dbug import *
 
 from traceback import print_exc
 
@@ -145,6 +143,9 @@ class OutStream(object):
       self.begin = None
       self.end = None
 
+    def __repr__(self):
+      return f'Section(placeholder={self.placeholder}, overwrite={self.overwrite}, bl={self.begin_line}, el={self.end_line}, o_bl={self.ori_begin_line}, o_el={self.ori_end_line}, b={self.begin}, e={self.end})'
+
   class Placeholder(object):
     """
     
@@ -155,6 +156,9 @@ class OutStream(object):
       self.begin_line = begin_line
       self.ori_begin_line = None
       self.sections = []
+
+    def __repr__(self):
+      return f'Placeholder(name={self.name}, f={f}, bl={self.begin_line}, o_bl={self.ori_begin_line}, n_sec={len(self.sections)})'
       
   def __init__(self):
     self.lines = []
@@ -189,9 +193,10 @@ class OutStream(object):
       f = self.matcher(self.lines[end-n:end], begin=False)
     section.begin = f_s
     section.end = f
-    section.start_line = i
+    section.begin_line = i
     section.end_line = end
     self.cur_section = None
+    self.sections.append(section)
   
   def placeholder(self, name, n=1, f=None):
     """
@@ -211,13 +216,13 @@ class OutStream(object):
   def getvalue(self):
     return "\n".join(self.lines) + '\n'
   
-  def end(self, out_p, use_section, keep_only_sections):
+  def end(self, out_p, use_sections, keep_only_sections):
     """
     End the stream by handling the sections
     """
-    if use_section is None :
-      use_section = bool(self.sections)
-    if not use_section :
+    if use_sections is None :
+      use_sections = bool(self.sections)
+    if not use_sections :
       return
 
     placeholders = [ Placeholder(name, f if f else matcher(self.lines[i:i+n]), i) for name, i, n, f in self._placeholders ]
@@ -251,8 +256,9 @@ class OutStream(object):
         candidate_sections.pop(j)
         for i in I :
           if s.end(lines, i) :
-            cur_section.ori_end_line = i
+            s.ori_end_line = i
             sections.append(s)
+            break
     # Remaining sections are the one not matched
     
     if keep_only_sections :
@@ -262,7 +268,7 @@ class OutStream(object):
           self.lines[s.begin_line:s.end_line] = lines[s.ori_begin_line:s.ori_end_line]
     else:
       # Merge placeholders and sections
-      elements = sorted(pldict.values() + sections, key=lambda x : x.ori_begin_line, reverse=True)
+      elements = sorted(chain(pldict.values(), sections), key=lambda x : x.ori_begin_line, reverse=True)
       # Place not matched sections in their placeholder
       for s in candidate_sections :
         pl = pldict.get(s.placeholder)

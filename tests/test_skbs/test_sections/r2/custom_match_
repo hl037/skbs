@@ -1,20 +1,21 @@
 
-Hors section
+Hors section OK
 
-TEST_Section1 and other stuff
-
+TEST_Section1 Different OK
+OK
 custom begin, standard end n=1
-
+OK
 FIN
 
 Between sections
 
 TEST_Section2
-
+OK
 standard begin n=1, custom end
-
-FIN and other stuff
+OK
 
 
 End of file
+
+OK
 
