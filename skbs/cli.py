@@ -115,22 +115,23 @@ def listTemplates():
   se = click.secho
   se('\n')
   se('User-installed templates :', fg='cyan', nl=False)
-  se('\n\n ', nl=False)
+  se('\n  ', nl=False)
   se("\n  ".join(user), fg='green', nl=False)
   se('\n\n', nl=False)
   se('Default templates :', fg='cyan', nl=False)
-  se('\n\n ', nl=False)
+  se('\n  ', nl=False)
   se("\n  ".join(default), fg='green', nl=False)
   se('\n')
 
 
 @main.command(name='gen')
+@click.option('--debug', '-g', is_flag=True)
 @click.argument('template', type=click.Path())
 @click.argument('dest', type=str)
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
 @click.pass_context
 @ensureB
-def gen(ctx, template, dest, args):
+def gen(ctx, debug, template, dest, args):
   """
   Generate a skeleton from a template.
 
@@ -138,13 +139,18 @@ def gen(ctx, template, dest, args):
   dest : the output directory (parents will be created if needed)
   args : argument passed to the template ( skbs gen <template_name> -- --help for more informations )
   """
-  from . import pluginutils
-  pluginutils.__ctx = ctx
-  pluginutils.__name = f'{template} {dest} --'
-  template_path = B.findTemplate(template)
-  res, help = B.execTemplate(template_path, dest, args)
-  if not res :
-    click.echo(help)
+  try:
+    from . import pluginutils
+    pluginutils.__ctx = ctx
+    pluginutils.__name = f'{template} {dest} --'
+    template_path = B.findTemplate(template)
+    res, help = B.execTemplate(template_path, dest, args)
+    if not res :
+      click.echo(help)
+  except:
+    if debug :
+      import pdb; pdb.xpm()
+    raise
 
 def bind_skip_after_double_dash_parse_args(cmd):
   ori = cmd.parse_args

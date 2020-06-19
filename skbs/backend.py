@@ -488,7 +488,7 @@ class Backend(object):
     _locals.parent = out_p.parent if out_p is not None else None
     _locals.sls, _locals.be, _locals.ee = tempiny.conf
     template = tempiny.compile(in_f, filename=in_p)
-    return template(out_f, {}, _locals)
+    return template(out_f, _locals.asDict())
 
   @classmethod
   def processFile(cls, in_p, out_p, is_opt, is_template, base_locals, tempiny_l, dest):

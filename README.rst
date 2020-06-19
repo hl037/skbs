@@ -349,10 +349,11 @@ Sections
 A template can define section to overwrite only some parts of a file.
 [TODO: explain better]
 
-include()
+include(path, **kwargs)
 ---------
 
-An ``include(path)`` function is provided in the templates scope. It will search for any ``__include/path`` file existing in any parent directory. inside an ``__include`` directory, the prefixes *raw* and *template* works, but not the *opt* and *force* ones.
+An ``include(path, **kwargs)`` function is provided in the templates scope. It will search for any ``__include/path`` file existing in any parent directory. inside an ``__include`` directory, the prefixes *raw* and *template* works, but not the *opt* and *force* ones.
+Any kwargs will be accessible from the included template as global variable, and can be modified.
 
 
 Dynamic filename
