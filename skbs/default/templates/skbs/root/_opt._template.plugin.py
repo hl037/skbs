@@ -1,4 +1,4 @@
-"""
+__doc__ = """
 Template {{dest.parent.name}}
 """
 
@@ -7,9 +7,6 @@ try:
 except:
   from skbs.pluginutils import IsNotAModuleOrScriptError
   raise IsNotAModuleOrScriptError
-
-if ask_help :
-  raise EndOfPlugin()
 
 # conf = C(
 #   # # Predefined template syntax are Tempiny.PY, Tempiny.C and Tempiny.TEX :
@@ -27,4 +24,27 @@ if ask_help :
 # )
 # conf.dir_template_filename = conf.template_prefix
 
+## if _p.click:
+
+plugin = C()
+
+@click.command(help=__doc__)
+def main(**kwargs):
+  plugin.update(kwargs)
+
+with click.Context(main) as ctx:
+  __doc__ = main.get_help(ctx)
+
+if ask_help :
+  raise EndOfPlugin()
+
+invokeCmd(main, args)
+
+## -
+## else :
+
+if ask_help :
+  raise EndOfPlugin()
+
+## -
 

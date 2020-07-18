@@ -390,7 +390,7 @@ Providing a ``new_path`` of ``None`` has the same effect but won't stop the file
 Dynamic dirname
 ---------------
 
-The same applies for directories, except you have to define a special file in it called the samme as the *template* prefix alone, or the default *template* ("``_template.``") if the *template* is set to ``None`` or an empty string.
+The same applies for directories, except you have to define a special file in it called the same as the *template* prefix alone, or the default *template* ("``_template.``") if the *template* is set to ``None`` or an empty string.
 This file should be raw python (no "## " prefixes).
 
 Click integration
@@ -406,7 +406,7 @@ Click is already available in the scope without need for importing it. To use it
    def main(**kwargs):
      plugin.update(kwargs)
    
-   invokeCmd(main, args) # invoke the click command this way make it behave nicely with skbs
+   invokeCmd(main, args) # invoke the click command this way makes it behave nicely with skbs
 
 ...This code is all that is needed
 
