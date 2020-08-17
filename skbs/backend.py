@@ -19,6 +19,9 @@ import json
 
 APP = 'skbs'
 
+class FlagPluginNotParsed(object):
+  pass
+
 class Include(object):
   """
   Include function implementation tracking the include paths
@@ -511,6 +514,7 @@ class Backend(object):
           except ExcludeFile:
             return
       out_p = _locals.get('new_path', out_p)
+      is_opt = _locals.get('is_opt', is_opt)
       if out_p is None :
         return
       out_p = dest / out_p
@@ -545,9 +549,37 @@ class Backend(object):
     except ExcludeFile:
       return None
     return _locals.get('new_path', out_p)
+
+  def execSingleFileTemplate(self, template_path : Path, dest : str, args, plugin = FlagPluginNotParsed):
+    ask_help = (dest == '@help') or (args and args[0] == '--help')
+    try:
+      conf, plugin, help = self.parsePlugin(template_path / 'plugin.py', args, dest, ask_help)
+    except PluginError as err:
+      return False, err.help
+    dest = Path(dest)
+    
+    tempiny_l, file_name_parser, include_dirname, pathmod_filename = self.parseConf(conf)
+      
+    base_locals = C(
+      plugin=plugin,
+      _p=plugin,
+      C=C,
+      removePrefix=file_name_parser,
+      file_name_parser=file_name_parser,
+      exclude=exclude,
+      endOfTemplate=endOfTemplate,
+    )
+    base_locals.include = Include([template_path / '__include'], tempiny_l, base_locals, file_name_parser)
+    
+    self.processFile(template_path/'root', Path(dest.name), False, True, base_locals, tempiny_l, dest.parent)
+    return True, help
+    
   
   def execTemplate(self, template_path : Path, dest : str, args):
     from hl037utils.config import Config as C
+    if not (template_path/'root').is_dir() :
+      return self.execSingleFileTemplate(template_path, dest, args)
+      
     ask_help = (dest == '@help') or (args and args[0] == '--help')
     try:
       conf, plugin, help = self.parsePlugin(template_path / 'plugin.py', args, dest, ask_help)
@@ -558,7 +590,6 @@ class Backend(object):
     tempiny_l, file_name_parser, include_dirname, pathmod_filename = self.parseConf(conf)
     
     d = template_path / 'root'
-    stack = [(False, d, Path(''))]
     include_paths = []
     pathmod_stack = []
     base_locals = C(
@@ -571,6 +602,8 @@ class Backend(object):
       endOfTemplate=endOfTemplate,
     )
     base_locals.include = Include(include_paths, tempiny_l, base_locals, file_name_parser)
+    
+    stack = [(False, d, Path(''))]
     while stack :
       
       seen, src, out = stack.pop()
@@ -582,6 +615,7 @@ class Backend(object):
           else:
             pathmod_stack[0][1] -= 1
         continue
+      
       (dest / out).mkdir(parents=True, exist_ok=True)
       stack.append((True, src, out))
       pathmod = self.parsePathMod(src / '__pathmod.py', base_locals)

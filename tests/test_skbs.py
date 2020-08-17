@@ -108,6 +108,12 @@ def doTestProcessing(simpleBackend, tmp_path, datadir):
   B.execTemplate(t, str(tmp_path), [42, 43])
   assertDirsEqual(r, tmp_path)
   
+def doTestProcessingSFT(simpleBackend, tmp_path, datadir):
+  B, _ = simpleBackend
+  t = Path(datadir['t'])
+  r = Path(datadir['r'])
+  B.execTemplate(t, str(tmp_path/'res'), [42, 43])
+  assertFilesEqual(r, tmp_path / 'res')
   
 def doTestProcessing2(simpleBackend, tmp_path, datadir):
   B, _ = simpleBackend
@@ -293,6 +299,14 @@ def test_placeholder(simpleBackend, tmp_path, datadir, datadir_copy):
   B.execTemplate(t, str(r4_), None)
   assertDirsEqual(r4, r4_)
   
-
+def test_sft(simpleBackend, tmp_path, datadir):
+  doTestProcessingSFT(simpleBackend, tmp_path, datadir)
+  
+def test_sft_include(simpleBackend, tmp_path, datadir):
+  doTestProcessingSFT(simpleBackend, tmp_path, datadir)
+  
+def test_sft_plugin(simpleBackend, tmp_path, datadir):
+  doTestProcessingSFT(simpleBackend, tmp_path, datadir)
+  
   
 

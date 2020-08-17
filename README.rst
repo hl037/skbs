@@ -275,7 +275,7 @@ Plugin directory structure
     \___
 
 It is a directory hierarchy with an optionnal __plugin.py that defines options of the template and functions usable in them.
-The directories, subdirectories and files under root are copied following the same structure (except for dynamic names explained later).
+The directories, subdirectories and files under root are copied following the same structure (except for dynamic names, explained later).
 
 A file name could have a first prefixed either ``_opt.`` or ``_forced.``, then a second either ``_raw.`` or ``_template.``.
 *opt* is for "optional", if the file exists alread, it won't be overwritten.
@@ -286,7 +286,24 @@ A file name could have a first prefixed either ``_opt.`` or ``_forced.``, then a
 In the output, the prefixes will obviously be removed from the name
 
 if the first prefix is omited, *forced* is assumed, and if the second is ommited, *template* is assumed.
-This behaviour and the prefix can be changed.
+This behaviour and the prefix can be changed.o
+
+Alternatively, it also could be a single file template if ``root`` is a file instead of a directory.
+In this case, the ``root`` file is the only template, it is considered *forced* and *template*. The ``is_opt`` can be set to change the *optional* inside the template aspect of the template.
+A directory ``__include`` can be present at the same level to include files in it from the template. A plugin.py can also be present to add more complexe logic.
+
+This is the file tree structure of a single-file template : 
+
+.. code-block::
+
+   /template/
+   | - plugin.py (optional)
+   | - root
+   | - __include/ (optional)
+   |   | - _raw.include_file1
+   |   | - _template.include_file2
+   |    \___
+    \___
 
 __plugin.py
 -----------
@@ -349,11 +366,13 @@ Sections
 A template can define section to overwrite only some parts of a file.
 [TODO: explain better]
 
-include(path, **kwargs)
+include(path, **kwargs) -> str
 ---------
 
 An ``include(path, **kwargs)`` function is provided in the templates scope. It will search for any ``__include/path`` file existing in any parent directory. inside an ``__include`` directory, the prefixes *raw* and *template* works, but not the *opt* and *force* ones.
 Any kwargs will be accessible from the included template as global variable, and can be modified.
+
+This function returns the output of the included file (it is commonly used as an inline expression)
 
 
 Dynamic filename
@@ -610,6 +629,11 @@ Path in the destination directory the file should have.
 Tipically used like this to rename dynaically the file ::
 
    ## new_path = dest.with_name('new_name')
+
+is_opt = ...
+--------------
+
+Changes the *optionnal* aspect of the template. Overrides the prefix in the template file name
 
 use_sections = ...
 ------------------
