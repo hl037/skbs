@@ -124,7 +124,7 @@ The synthax used is the Tempiny one.
 
 First an example to demonstrate all its features ::
 
-   ## # need to declare variables that may be used in a generator as "globals" because of the behavious as : https://stackoverflow.com/a/31298828/1745291
+   ## # need to declare variables that may be used in a generator as "globals" because of the behaviour as : https://stackoverflow.com/a/31298828/1745291
    ## global a, b, c
    
    This text will be printed as it is
@@ -151,7 +151,7 @@ First an example to demonstrate all its features ::
    Expression can be as complex you want as long as they are valid python expression returning something that can be transformed to a string :
    {{ ";".join( str(i) + f' - {a=},{b=},{c=}' for i in range(2)) }}
 
-will be touputed as ::
+will be ouputed as ::
 
    This text will be printed as it is
    
@@ -754,4 +754,21 @@ User defined function to change file output path and
 
 this input path has the prefix, the function should return the new path with no prefix,  where the path should be generated.
 
+License
++++++++
+
+Copyright © 2018-2020 Léo Flaventin Hauchecorne
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
