@@ -5,8 +5,6 @@ from click.exceptions import Exit, Abort, ClickException
 from contextlib import contextmanager
 from ._internal_click_monkey_patches import CliError
 
-from dbug import *
-
 class EndOfPlugin(Exception):
   pass
 

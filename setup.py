@@ -21,7 +21,7 @@ EXTRAS = {}
 
 setup(
     name='skbs',
-    version='1.0',
+    version='1.0.1',
     description='SKeleton BootStrap, a full-powered yet trivial to use and customize template based bootstrap or code generation tool',
     long_description=LONG_DESC,
     long_description_content_type='text/x-rst',
@@ -33,7 +33,7 @@ setup(
     test_suite=None,
     include_package_data=True,
     zip_safe=False,
-    install_requires=[],
+    install_requires=['click>=0.7', 'appdirs>=1.4.4'],
     extras_require=None,
     entry_points={
       'console_scripts':[

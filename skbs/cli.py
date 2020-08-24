@@ -3,18 +3,13 @@ import os
 import sys
 import traceback
 import click
-import click_completion
 import pkg_resources
 from functools import wraps
-
-click_completion.init()
 
 from pathlib import Path
 
 from . import configutils
 from .backend import Backend
-
-from dbug import *
 
 def common_opts(*F):
   def composed(a):

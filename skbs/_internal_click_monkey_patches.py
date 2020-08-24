@@ -2,7 +2,6 @@
 import sys
 import click
 from contextlib import contextmanager
-from dbug import *
 
 def tryImport(*args):
   try:
@@ -39,7 +38,6 @@ __click_modules = [
   if (mod := getattr(click, sm, None))
 ]
 
-#Dvar(r"""__click_modules""")
 __click_modules.append(click)
 
 class Echo(object):
