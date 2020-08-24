@@ -48,5 +48,6 @@ wsdata
 
 htmlcov
 .coverage
+build
 
 _me_*

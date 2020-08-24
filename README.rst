@@ -432,8 +432,8 @@ Example ::
 
 ..."section content" will replace whatever is between "//START OF THE SECTION" and "//END OF THE SECTION" in the existing file. if not found but there is a "//PLACEHOLDER" line, then it will be placed just before.
 
-include(path, **kwargs) -> str
----------
+include(path, \*\*kwargs) -> str
+--------------------------------
 
 An ``include(path, **kwargs)`` function is provided in the templates scope. It will search for any ``__include/path`` file existing in any parent directory. inside an ``__include`` directory, the prefixes *raw* and *template* workxs, but not the *opt* and *force* ones.
 Any kwargs will be accessible from the included template as global variable, and can be modified.

@@ -22,12 +22,12 @@ EXTRAS = {}
 setup(
     name='skbs',
     version='1.0',
-    description='SKeleton BootStrap, a full-powered yet trivial to use and customize template based bootstrap tool',
+    description='SKeleton BootStrap, a full-powered yet trivial to use and customize template based bootstrap or code generation tool',
     long_description=LONG_DESC,
     long_description_content_type='text/x-rst',
     author='Léo Flaventin Hauchecorne',
     author_email='hl037.prog@gmail.com',
-    url='https://gitea.dev.leo-flaventin.com/hl037/hrprotoparser',
+    url='https://github.com/hl037/skbs',
     license='GPLv3',
     packages=find_packages(),
     test_suite=None,
@@ -40,9 +40,6 @@ setup(
         'skbs=skbs.cli:main',
       ]
     },
-    #package_data={
-    #  'module' : ['module/path/to/data', 'path/to/glob/*'],
-    #},
     classifiers=[],
     **EXTRAS
 )
