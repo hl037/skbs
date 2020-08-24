@@ -11,10 +11,17 @@ except:
 
 plugin = C()
 
+import click
+
 @click.command(help=__doc__)
 @click.option('--click', is_flag=True, help='Generate click command bootstrap')
-def main(**kwargs):
+@click.option('--sft', '-s', type=click.File('r'), default=None)
+def main(sft, **kwargs):
   plugin.update(kwargs)
+  if sft is not None :
+    plugin.sft = sft.read()
+  else:
+    plugin.sft = None
 
 with click.Context(main) as ctx:
   __doc__ = main.get_help(ctx)

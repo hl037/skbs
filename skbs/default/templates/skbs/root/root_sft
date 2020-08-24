@@ -1,0 +1,4 @@
+## if _p.sft is None:
+##   exclude()
+## new_path = dest.with_name('root')
+{{_p.sft}}

@@ -5,7 +5,7 @@ SKBS
 SKBS for SKeleton BootStrap
 
 As a programmer I encounter many times moment where I'm telling myself "So boring to always copy-paste the same project"
-and short after "Why is there a **SIMPLE** project generator based on simple template I can easily customize and create ???"
+and short after "Why is there no **SIMPLE** project generator based on simple template I can easily customize and create ???"
 
 ...Well I fed up...
 
@@ -14,8 +14,9 @@ and short after "Why is there a **SIMPLE** project generator based on simple tem
 What is SKBS
 ++++++++++++
 
-Okay, so skbs is a python module with a command line interfacet permits to bootstrap all the boiler plate of a project.
-First, you need to write a plugin (easy enough thanks to a built-in plugin to... bootstrap plugins...),
+Okay, so skbs was originally a python module with a command line interface permiting to bootstrap all the boiler plate of a project.
+...Now, it can generate any kind of file structure dynamically...
+First, you need to write a template (easy enough thanks to a built-in template to... bootstrap templates...),
 then either use it passing its path, or install it (copy or symlink) to acces it with @<name>.
 
 Then you call it and it's done.
@@ -24,15 +25,15 @@ Features
 ++++++++
 
 * Static templates are as simple as the file they contain
+* Easy to share templates
 * Full python-powered template engine with ridiculous easy synthax
-* Customizable template synthax (because double braces expression for latex is hellier than anything)
-* Full python interpreter available inside a file template
-* Dynamic file names quite easy
-* Dynamic directory name also easy
-* Fully customizable : every choice made in default file names are customizable
+* Configurable template synthax (because double braces expression for latex is hellier than anything)
+* Full python interpreter available inside a template
+* Dynamic file names
+* Dynamic directory names
 * Click integration to do complex templates that need argument parsing
-* Full-featured include system (because writing and maintening the same header is non sense)
-* Write your first plugin in less than 15 minutes
+* Full-featured include system (because writing and maintaining the same header is non sense)
+* Write your first template in less than 5 minutes
 * Backend heavily tested with pytest unit tests
 
 Install
@@ -46,9 +47,9 @@ Then, generate the first configuration file ::
    
    skbs create-config
 
-It will display you the location.
+It will display you the location of the installed templates.
 
-By default, templates will be installed to the system default location for application data (on linux, generaly ``~/.local/share/skbs/``).
+By default, templates will be installed to the system's default location for application data (on linux, generaly ``~/.local/share/skbs/``).
 
 Then, install the default templates ::
 
@@ -89,9 +90,25 @@ Usage of gen ::
    Options:
      --help  Show this message and exit.
 
-Example to generate the template for skbs plugins ::
+Example to generate the template for creating a skbs plugins ::
 
    skbs gen @skbs <dest>
+
+The arguments and options after the double dash (``--``) are sent to the template. For example, for the skbs template ::
+
+   Usage:  [OPTIONS]
+
+     skbs Meta-Template =D This is the template to generate the base skeleton
+     of a custom skbs template
+
+   Options:
+     --click             Generate click command bootstrap
+     -s, --sft FILENAME
+     --help              Show this message and exit.
+
+The ``--click`` option adds a click command line parser to easily take options that are usable in the template.
+The ``-s`` permits to generate a signle-file template, with only the file following the option.
+
 
 Template engine
 +++++++++++++++
@@ -100,7 +117,7 @@ By the way, the unit tests of skbs serves as tests for Tempiny. =)
 
 See tempiny for more details. Here a summary of its features :
 
-Template file  syntax
+Template file syntax
 =====================
 
 The synthax used is the Tempiny one.
@@ -178,7 +195,7 @@ Basically, there are 3 contexts :
 Code context
 ------------
 
-Each line starting by the code prefix (specified in __plugin.py, or '##' by default) is basically python code except for the block delimitation :
+Each line starting by the code prefix (specified in ``plugin.py``, or '##' by default) is basically python code except for the block delimitation :
 in python, the indentation level delimits a block while with tempiny, for pratical use, indentation doesn't matter, and a block is ended by a single dash ( "-" ).
 
 Example : 
@@ -201,7 +218,7 @@ Text context
 ------------
 
 Any line that doesn't start with the code prefix is "text", and will be outputed as is each time the execution flow reaches it.
-Basically, you can imagine (btw, this is really how it is implemented...) each Text context is like a call to ``print`` 
+Basically, you can imagine (btw, this is actually how it is implemented...) each Text context is like a call to ``print`` 
 
 For example, the following : 
 
@@ -221,13 +238,13 @@ Will output :
   To see
   To see
   To see
-  ho it works
+  how it works
 
 Expression context
 ------------------
 
 Inside a Text context, you may want to print an expression (for example a variable value or the result of a python call etc.)
-You can do it by surrounding it with the expression delimiters (specified in __plugin.py or '{{' and '}}' by default).
+You can do it by surrounding it with the expression delimiters (specified in ``plugin.py`` or '{{' and '}}' by default).
 It will be replaced by the expression value at the time of execution. Example ::
 
   ## for i in range(3)
@@ -240,17 +257,17 @@ Will print ::
   Item number 1
   Item number 2
 
-Any python code is here again allowed.
+Any python cexpression is allowed.
 
 Once again, you sould only execute trusted templates.
 
-Plugins
-+++++++
+Template
+++++++++
 
-A plugin permits to define templates, that will be copy and parsed
+A plugin permits to define a file structure, that will be copied and parsed
 
-Plugin directory structure
-==========================
+Template directory structure
+============================
 
 
 .. code-block::
@@ -274,10 +291,10 @@ Plugin directory structure
    |    \___
     \___
 
-It is a directory hierarchy with an optionnal __plugin.py that defines options of the template and functions usable in them.
-The directories, subdirectories and files under root are copied following the same structure (except for dynamic names, explained later).
+It is a directory hierarchy with an optionnal ``plugin.py`` that defines options of the template and functions usable in them.
+The directories, subdirectories and files under ``root`` are copied following the same structure (except for dynamic names, explained later).
 
-A file name could have a first prefixed either ``_opt.`` or ``_forced.``, then a second either ``_raw.`` or ``_template.``.
+A file name could have a first prefix, either ``_opt.`` or ``_forced.``, then a second either ``_raw.`` or ``_template.``.
 *opt* is for "optional", if the file exists alread, it won't be overwritten.
 *forced* is the opposite
 *raw* means the file will be copied as is
@@ -286,10 +303,11 @@ A file name could have a first prefixed either ``_opt.`` or ``_forced.``, then a
 In the output, the prefixes will obviously be removed from the name
 
 if the first prefix is omited, *forced* is assumed, and if the second is ommited, *template* is assumed.
-This behaviour and the prefix can be changed.o
+This behaviour and the prefixes can be changed.
 
-Alternatively, it also could be a single file template if ``root`` is a file instead of a directory.
-In this case, the ``root`` file is the only template, it is considered *forced* and *template*. The ``is_opt`` can be set to change the *optional* inside the template aspect of the template.
+
+Alternatively, a template could also be a single file template if ``root`` is a file instead of a directory.
+In this case, the ``root`` file is the only file. It is considered *forced* and *template*. The ``is_opt`` can be set to change the *optional* flag from inside the template.
 A directory ``__include`` can be present at the same level to include files in it from the template. A plugin.py can also be present to add more complexe logic.
 
 This is the file tree structure of a single-file template : 
@@ -305,11 +323,12 @@ This is the file tree structure of a single-file template :
    |    \___
     \___
 
-__plugin.py
------------
+``plugin.py``
+-------------
 
-This file can define the config and the functions accessible in the templates.
-it can define a variable ``config`` which should be a ``skbs.pluginutils.Config`` (aliased as ``C`` without need for importing it)
+This file is used to define the configuration and all the complex logic of the template, such as the option parser (click) and the function / variables available inside the template.
+
+It can define a variable ``config`` which should be a ``skbs.pluginutils.Config`` (aliased as ``C`` without need for importing it)
 providing the following settings ::
 
    conf = C(
@@ -351,25 +370,72 @@ You may also call ``endOfPlugin`` to stop the execution without error,
 
 or raise ``PluginError(<help msg>)`` if an error occured.
 
+
+If the click flag was passed when bootstraping the template, a click command line is added. To add user passed variable to the template via _p.<var_name>, just add it as an option ::
+
+
+   plugin = C()
+
+   @click.command(help=__doc__)
+   @click.option('--auther')  #  <--- Here is an option. its vallue is available with _p.author
+   def main(**kwargs):
+     plugin.update(kwargs)
+
+   with click.Context(main) as ctx:
+     __doc__ = main.get_help(ctx)
+
+   if ask_help :
+     raise EndOfPlugin()
+
+   invokeCmd(main, args)
+
+
+
 Template files
 --------------
 
-Template files are files starting with the ``conf.force_prefix`` defined in ``__plugin.py``. These are template using the previously seen tempiny synthax.
+Template files are files starting with the ``conf.template_prefix`` defined in ``plugin.py``. These are template using the previously seen tempiny synthax.
 Some python symbols are predefined : 
 
- * ``plugin`` or ``_p`` : reference to the ``plugin`` variable as defined in ``__plugin.py``
+ * ``plugin`` or ``_p`` : reference to the ``plugin`` variable as defined in ``plugin.py``
  * ``dest`` : The destination file of the template
+
+(see the Reference ofr more details)
 
 Sections
 --------
 
-A template can define section to overwrite only some parts of a file.
-[TODO: explain better]
+A template can define sections to overwrite only some parts of a file.
+
+Depending of the value of ``keep_only_sections``, either the template will replace only the sections of an existing file, or, it will keep only the sections.
+In both cases, you can decide which section is overriten or not.
+
+A section is delimited by a call to ``beginSection()`` and ``endSection()``. (see the reference for more details).
+Sections are retrieved in the existing file using some pattern matching, either static (the ``n`` following line of ``beginSection()`` of preceeding ``endSection()``), or dynamic (using a callback).
+
+Section not found are added at a ``placeholder()``. It is matched the same way as a seciton.
+
+Example ::
+
+   beginSection(placeholder='pl')
+   //START OF THE SECTION
+   
+   section content
+   
+   //END OF THE SECTION
+   endSection()
+   
+   ...Some content...
+   
+   placeholder('pl')
+   //PLACEHOLDER
+
+..."section content" will replace whatever is between "//START OF THE SECTION" and "//END OF THE SECTION" in the existing file. if not found but there is a "//PLACEHOLDER" line, then it will be placed just before.
 
 include(path, **kwargs) -> str
 ---------
 
-An ``include(path, **kwargs)`` function is provided in the templates scope. It will search for any ``__include/path`` file existing in any parent directory. inside an ``__include`` directory, the prefixes *raw* and *template* works, but not the *opt* and *force* ones.
+An ``include(path, **kwargs)`` function is provided in the templates scope. It will search for any ``__include/path`` file existing in any parent directory. inside an ``__include`` directory, the prefixes *raw* and *template* workxs, but not the *opt* and *force* ones.
 Any kwargs will be accessible from the included template as global variable, and can be modified.
 
 This function returns the output of the included file (it is commonly used as an inline expression)
@@ -409,6 +475,8 @@ Click is already available in the scope without need for importing it. To use it
    invokeCmd(main, args) # invoke the click command this way makes it behave nicely with skbs
 
 ...This code is all that is needed
+
+the default @skbs template provides the click boiler plate to handle the --help option
 
 User API Reference
 ++++++++++++++++++
@@ -592,6 +660,8 @@ Start an overwritten section.
 If ``f`` is None, Then the ``n`` following lines in the "virtually" outputed template (as if it were run for the first time) will be the line to match exactly in the original file to tag the section start.
 
 If a placeholder is specified and the original file does not have this section, then it will be put just before the placeholder (so that further added sections go always to the end)
+
+if ``overwrite`` is set, then the section from the replaced output file will be overitten, else, it will be kept.
 
 endSection(n=1, f=None)
 -----------------------

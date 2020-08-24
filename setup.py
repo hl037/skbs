@@ -24,6 +24,7 @@ setup(
     version='1.0',
     description='SKeleton BootStrap, a full-powered yet trivial to use and customize template based bootstrap tool',
     long_description=LONG_DESC,
+    long_description_content_type='text/x-rst',
     author='Léo Flaventin Hauchecorne',
     author_email='hl037.prog@gmail.com',
     url='https://gitea.dev.leo-flaventin.com/hl037/hrprotoparser',
@@ -45,3 +46,4 @@ setup(
     classifiers=[],
     **EXTRAS
 )
+
