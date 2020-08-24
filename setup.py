@@ -33,7 +33,7 @@ setup(
     test_suite=None,
     include_package_data=True,
     zip_safe=False,
-    install_requires=['click>=0.7', 'appdirs>=1.4.4'],
+    install_requires=['click>=0.7', 'appdirs>=1.4.4', 'tempiny>=1.0'],
     extras_require=None,
     entry_points={
       'console_scripts':[
