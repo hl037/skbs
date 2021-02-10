@@ -481,9 +481,17 @@ the default @skbs template provides the click boiler plate to handle the --help 
 User API Reference
 ++++++++++++++++++
 
+plugin.py and templates
+=======================
 
-plugin.py
-=========
+invokeTemplate(template_name:str, dest:str, args:list[str], out_f:file | None: None)
+------------------------------------------------------------------------------------
+
+Invoke another template (``template_name``) generating to ``dest``, with ``args`` passed to it. If specified, and if the template is single-file, then ``out_f`` can optionally be passed to generate to a file like.
+
+
+plugin.py (and single file template)
+====================================
 
 Symbols available in plugin.py and symbols you can define
 
@@ -554,10 +562,18 @@ Tempiny as if you had imported it like ::
 
 Used to pass configuration and change the dialect depending to the file pattern.
 
-dest : str
-----------
+dest : str | None
+-----------------
 
-root output directory
+Root output directory. ``None`` if ``ask_help`` is ``True``
+
+parseCmd(click_opts_or_args...) : C
+-----------------------------------
+
+Parse the commandline using the click option / arg decorators in argument, and produces a Dict-like with all option values.
+The options are also added to ``_p`` 
+
+
 
 
 ---------------------------------------

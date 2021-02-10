@@ -64,6 +64,23 @@ def invokeCmd(cmd, args, **extra):
   err = stderr.getvalue()
   if err :
     raise PluginError(err)
+
+class OptionParser(object):
+  """
+  Use invokeCmd to parse options and put the result in a dict-like.
+  """
+  def __init__(self, args:list[str], opts:'Config'):
+    self.args = args
+    self.opts = opts
+
+  def __call__(self, *click_opts):
+    @click.command(name='')
+    def cmd(**kwargs):
+      self.opts.update(kwargs)
+    for opt in click_opts :
+      cmd = opt(cmd)
+    invokeCmd(cmd, self.args)
+    return self.opts
   
 class _Default:
   pass

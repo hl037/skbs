@@ -123,10 +123,12 @@ def listTemplates():
 @click.option('--debug', '-g', is_flag=True)
 @click.argument('template', type=click.Path())
 @click.argument('dest', type=str)
+@click.option('--stdout', is_flag=True, help='Only for single file templates : output to stdout. --single-file is implied')
+@click.option('--single-file', '-s', is_flag=True, help='Authorize single file template for non installed templates.')
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
 @click.pass_context
 @ensureB
-def gen(ctx, debug, template, dest, args):
+def gen(ctx, debug, template, dest, stdout, single_file, args):
   """
   Generate a skeleton from a template.
 
@@ -138,8 +140,12 @@ def gen(ctx, debug, template, dest, args):
     from . import pluginutils
     pluginutils.__ctx = ctx
     pluginutils.__name = f'{template} {dest} --'
-    template_path = B.findTemplate(template)
-    res, help = B.execTemplate(template_path, dest, args)
+    template_path = B.findTemplate(template, single_file_authorized=single_file or stdout)
+    out_f = None
+    if stdout :
+      import sys
+      out_f = sys.stdout
+    res, help = B.execTemplate(template_path, dest, args, out_f)
     if not res :
       click.echo(help)
   except:

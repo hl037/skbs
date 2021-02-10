@@ -6,7 +6,7 @@ from functools import wraps
 import pkg_resources
 import os
 import shutil
-from .pluginutils import Config as C, EndOfPlugin, PluginError, ExcludeFile, exclude, pluginError, endOfTemplate, invokeCmd
+from .pluginutils import Config as C, EndOfPlugin, PluginError, ExcludeFile, exclude, pluginError, endOfTemplate, invokeCmd, OptionParser
 from tempiny import Tempiny
 from itertools import accumulate, chain
 import io
@@ -280,7 +280,7 @@ class OutStream(object):
         pl = pldict.get(s.placeholder)
         if pl is not None :
           pl.sections.append(s)
-      # Replace sections in original file file with template ones except if overwrite False (in this case, only add at placeholder if not present)
+      # Replace sections in original file with template ones except if overwrite False (in this case, only add at placeholder if not present)
       
       for e in reversed(sections) :
         if isinstance(e, self.Section) :
@@ -390,6 +390,7 @@ class Backend(object):
       Tempiny=Tempiny,
       invokeTemplate=invokeTemplate,
       dest=dest if not ask_help else None,
+      parseCmd=OptionParser(args, plugin),
     )
     if path.is_file() :
       # source plugin.py if one
@@ -426,7 +427,7 @@ class Backend(object):
     pathmod_filename = conf.get('pathmod_filename', self.PATHMOD_FILENAME)
     return tempiny_l, file_name_parser, include_dirname, pathmod_filename
   
-  def findTemplate(self, template):
+  def findTemplate(self, template, single_file_authorized=False):
     """
     Find `template`. If `template` starts with a '@', then search in globally installed template.
     Else, if the path exists and point to a directoryn, return this directory.
@@ -439,6 +440,8 @@ class Backend(object):
         p = self.config.template_dir/'default/templates'/template[1:]
     else:
       p = Path(template)
+    if single_file_authorized and p.is_file() :
+      return p
     if not p.is_dir() :
       raise FileNotFoundError(p)
     return p
@@ -446,7 +449,7 @@ class Backend(object):
   @staticmethod
   def getFirstMatch(l, path):
     """
-    Get the second item of the first match on the frist item in a list of couples
+    Get the second item of the first match on the first item in a list of couples
     """
     return next(obj for glob_pat, obj in l if path.match(glob_pat))
   
@@ -494,10 +497,13 @@ class Backend(object):
     return template(out_f, _locals.asDict())
 
   @classmethod
-  def processFile(cls, in_p, out_p, is_opt, is_template, base_locals, tempiny_l, dest):
+  def processFile(cls, in_p, out_p, is_opt, is_template, base_locals, tempiny_l, dest, out_f=None):
     if is_template :
       tmp_out_f = OutStream()
-      tempiny = cls.getFirstMatch(tempiny_l, out_p)
+      if out_p :
+        tempiny = cls.getFirstMatch(tempiny_l, out_p)
+      else:
+        _, tempiny = tempiny_l[0]
       with in_p.open('r') as in_f :
         _locals = {
           **base_locals,
@@ -512,26 +518,31 @@ class Backend(object):
           except EndOfPlugin:
             pass
           except ExcludeFile:
-            return
+            return _locals
       out_p = _locals.get('new_path', out_p)
       is_opt = _locals.get('is_opt', is_opt)
       if out_p is None :
-        return
+        if out_f :
+          out_f.write(tmp_out_f.getvalue())
+        return _locals
       out_p = dest / out_p
       if out_p.exists() :
         if is_opt :
-          return
+          return _locals
         else:
           tmp_out_f.end(out_p, _locals.get('use_sections'), _locals.get('keep_only_sections', True))
       out_p.parent.mkdir(parents=True, exist_ok=True)
-      with out_p.open('w') as out_f :
+      if out_f :
         out_f.write(tmp_out_f.getvalue())
+      else:
+        with out_p.open('w') as out_f :
+          out_f.write(tmp_out_f.getvalue())
       tmp_out_f.close()
     else:
       out_p = dest / out_p
       if is_opt :
         if out_p.exists() :
-          return
+          return C()
       shutil.copyfile(in_p, out_p)
   @staticmethod
   def processDir(base_locals, in_p, out_p, file_name_parser):
@@ -550,36 +561,79 @@ class Backend(object):
       return None
     return _locals.get('new_path', out_p)
 
-  def execSingleFileTemplate(self, template_path : Path, dest : str, args, plugin = FlagPluginNotParsed):
+  def execSingleFileTemplate(self, template_path : Path, dest : str, args:list[str], out_f=None, plugin = C()):
     ask_help = (dest == '@help') or (args and args[0] == '--help')
-    try:
-      conf, plugin, help = self.parsePlugin(template_path / 'plugin.py', args, dest, ask_help)
-    except PluginError as err:
-      return False, err.help
-    dest = Path(dest)
-    
-    tempiny_l, file_name_parser, include_dirname, pathmod_filename = self.parseConf(conf)
+    if dest == '@' :
+      dest_name = None
+      dest_parent = Path()
+    else:
+      dest = Path(dest)
+      dest_name = Path(dest.name)
+      dest_parent = dest.parent
+
+    # Template as file
+    if template_path.is_file() :
+      tempiny_l, file_name_parser, include_dirname, pathmod_filename = self.parseConf(None)
+        
+      base_locals = C(
+        args = args,
+        ask_help=ask_help,
+        C=C,
+        click=click,
+        invokeCmd = invokeCmd,
+        EndOfPlugin=EndOfPlugin,
+        PluginError=PluginError,
+        pluginError=pluginError,
+        dest=dest if not ask_help else None,
+        parseCmd=OptionParser(args, plugin),
+        
+        plugin=plugin,
+        _p=plugin,
+        removePrefix=file_name_parser,
+        file_name_parser=file_name_parser,
+        exclude=exclude,
+        endOfTemplate=endOfTemplate,
+        invokeTemplate=self.invokeTemplate,
+      )
       
-    base_locals = C(
-      plugin=plugin,
-      _p=plugin,
-      C=C,
-      removePrefix=file_name_parser,
-      file_name_parser=file_name_parser,
-      exclude=exclude,
-      endOfTemplate=endOfTemplate,
-    )
-    base_locals.include = Include([template_path / '__include'], tempiny_l, base_locals, file_name_parser)
-    
-    self.processFile(template_path/'root', Path(dest.name), False, True, base_locals, tempiny_l, dest.parent)
-    return True, help
+      try:
+        _locals = self.processFile(template_path, dest_name, False, True, base_locals, tempiny_l, dest_parent, out_f=out_f)
+      except PluginError as err:
+        return False, err.help
+      return True, _locals.get('help')
+      
+    # Template as dir
+    else:
+      try:
+        conf, plugin, help = self.parsePlugin(template_path / 'plugin.py', args, dest, ask_help)
+      except PluginError as err:
+        return False, err.help
+      dest = Path(dest)
+      
+      tempiny_l, file_name_parser, include_dirname, pathmod_filename = self.parseConf(conf)
+        
+      base_locals = C(
+        plugin=plugin,
+        _p=plugin,
+        C=C,
+        removePrefix=file_name_parser,
+        file_name_parser=file_name_parser,
+        exclude=exclude,
+        endOfTemplate=endOfTemplate,
+        invokeTemplate=self.invokeTemplate,
+      )
+      base_locals.include = Include([template_path / '__include'], tempiny_l, base_locals, file_name_parser)
+      
+      self.processFile(template_path/'root', dest_name, False, True, base_locals, tempiny_l, dest_parent, out_f=out_f)
+      return True, help
     
   
-  def execTemplate(self, template_path : Path, dest : str, args):
-    from hl037utils.config import Config as C
+  def execTemplate(self, template_path : Path, dest : str, args, out_f=None):
     if not (template_path/'root').is_dir() :
-      return self.execSingleFileTemplate(template_path, dest, args)
+      return self.execSingleFileTemplate(template_path, dest, args, out_f=out_f)
       
+    if dest == '@' or out_f is not None:
+      return False, 'Stream output is not available as dest for multi-file plugins.'
     ask_help = (dest == '@help') or (args and args[0] == '--help')
     try:
       conf, plugin, help = self.parsePlugin(template_path / 'plugin.py', args, dest, ask_help)
@@ -600,6 +654,7 @@ class Backend(object):
       file_name_parser=file_name_parser,
       exclude=exclude,
       endOfTemplate=endOfTemplate,
+      invokeTemplate=self.invokeTemplate,
     )
     base_locals.include = Include(include_paths, tempiny_l, base_locals, file_name_parser)
     
@@ -645,6 +700,8 @@ class Backend(object):
         self.processFile(in_p, out_p, is_opt, is_template, base_locals, tempiny_l, dest)    
     return True, help
 
-  def invokeTemplate(self, template_name, dest, args):
-    self.execTemplate(self.findTemplate(template_name), dest, args)
+  def invokeTemplate(self, template_name, dest, args, out_f=None, single_file_authorized=None):
+    if single_file_authorized is None :
+      single_file_authorized = out_f is not None
+    return self.execTemplate(self.findTemplate(template_name, single_file_authorized=single_file_authorized), dest, args, out_f)
 
