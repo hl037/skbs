@@ -103,6 +103,9 @@ class Config(object):
     return p
   def update(self, d):
     return self.__d__.update(d)
+  def register(self, obj):
+    self.__d__[obj.__name__] = obj
+    return obj
   def asDict(self):
     return self.__dict__['__d__']
   def __getattr__(self, *args, **kwargs):
@@ -141,4 +144,5 @@ class Config(object):
     c = Config()
     c.__dict__['__d__'].update(__d__)
     return c
+
 

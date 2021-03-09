@@ -21,7 +21,7 @@ EXTRAS = {}
 
 setup(
     name='skbs',
-    version='1.0.1',
+    version='1.1.0',
     description='SKeleton BootStrap, a full-powered yet trivial to use and customize template based bootstrap or code generation tool',
     long_description=LONG_DESC,
     long_description_content_type='text/x-rst',

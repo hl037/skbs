@@ -637,12 +637,14 @@ Same as plugin, another shorter alias.
 dest : pathlib.Path
 -------------------
 
-Relative to destination repository current file template path.
+Path of the current file relative to the destination
 
 C : <class skbs.pluginutils.Config>
 -----------------------------------
 
 ``skbs.pluginutils.Config`` class alias to create quickly dict-compatible javascript-like object objects. 
+
+This class has a method ``register`` that can be used as a function or class decorator to insert it into the dict.
 
 include(path)
 -------------
