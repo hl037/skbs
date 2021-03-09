@@ -489,6 +489,10 @@ invokeTemplate(template_name:str, dest:str, args:list[str], out_f:file | None: N
 
 Invoke another template (``template_name``) generating to ``dest``, with ``args`` passed to it. If specified, and if the template is single-file, then ``out_f`` can optionally be passed to generate to a file like.
 
+plugin.py
+=========
+
+You can use the ``from . import module_name`` to import module in the same directory as the ``plugin.py`` file
 
 plugin.py (and single file template)
 ====================================

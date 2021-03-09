@@ -4,6 +4,7 @@ import traceback
 from contextlib import contextmanager
 from functools import wraps
 import pkg_resources
+import sys
 import os
 import shutil
 from .pluginutils import Config as C, EndOfPlugin, PluginError, ExcludeFile, exclude, pluginError, endOfTemplate, invokeCmd, OptionParser
@@ -372,6 +373,16 @@ class Backend(object):
       remove_tree(str(dest))
     return dest
 
+  def createDummyPluginModule(self, path, g):
+    path = path.parent
+    g.__package__ = '__skbs_plugin__' + str(path).replace('/', '_').replace('.','_')
+    m = C(
+      __name__ = g.__package__,
+      __path__ = [str(path)],
+      __package__ = '',
+    )
+    sys.modules[g.__package__] = m
+
   def parsePlugin(self, path, args, dest, ask_help):
     tempiny = None
     plugin = None
@@ -396,6 +407,7 @@ class Backend(object):
       # source plugin.py if one
       with path.open('r') as f :
         obj = compile(f.read(), path, 'exec')
+      self.createDummyPluginModule(path, g)
       try:
         exec(obj, g.asDict(), g)
       except EndOfPlugin:
