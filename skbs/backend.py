@@ -308,11 +308,14 @@ def extractHelpFromLocals(loc):
   
 
 def findTemplates(d: Path, root: Path):
-  for c in d.iterdir() :
-    if c.name == 'root' :
-      yield c.parent.relative_to(root)
-    elif c.is_dir() :
-      yield from findTemplates(c, root)
+  if (d / 'root').exists() :
+    yield d.relative_to(root)
+  else :
+    for c in d.iterdir() :
+      if c.is_dir() :
+        yield from findTemplates(c, root)
+      else :
+        yield c.relative_to(root)
       
 tempinySyntaxRegex = r'^(\s*\S+)\s+\#\s+(\S+)__skbs_template__(\S+)\s*$'
 
