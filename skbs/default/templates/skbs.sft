@@ -33,7 +33,7 @@
  ##       -
  ##       _p.syn = syn
  ##     -
- ##     _p.content = '\n'.join(l)
+ ##     _p.content = ''.join(l)
  ##   -
  ##   else :
  ##     _p.content = None
