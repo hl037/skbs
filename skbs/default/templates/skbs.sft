@@ -3,7 +3,6 @@
  ## skbs Meta-Template =D
  ## This is the template to generate the base skeleton of a custom skbs template
  ## """
- ## breakpoint()
  ## import click
  ## from pathlib import Path
  ## from skbs.backend import tempinySyntaxRegex
@@ -57,7 +56,7 @@
  ## 
  ## invokeCmd(main, args)
  ## 
-{{_p.syn['stmt_line_start']}} # {{_p.syn['begin_expr']}}value{{_p.syn['end_expr']}}
+{{_p.syn['stmt_line_start']}} # {{_p.syn['begin_expr']}}__skbs_template__{{_p.syn['end_expr']}}
  ## if _p.content is None :
 {{_p.cc}} __doc__ = """
 {{_p.cc}} Template {{dest.name}}

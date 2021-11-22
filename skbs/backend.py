@@ -63,7 +63,7 @@ class Include(object):
     else:
       val = p.read_text()
     # On unix-like system, a line must end with '\n'.
-    # Since the included concent could be in the middle of a line, the extra '\n' should be removed
+    # Since the included content could be in the middle of a line, the extra '\n' should be removed
     if val[-1] == '\n' :
       return val[:-1] 
     return val
