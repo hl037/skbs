@@ -1,0 +1,5 @@
+ ## if not _p.sft:
+ ##   exclude()
+ ## -
+ ## new_path = root
+{{_p.content}}

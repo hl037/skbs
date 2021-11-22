@@ -1,0 +1,3 @@
+## # {{__skbs_template__}}
+## b = 3
+This is a test a = {{1 + 1}} b = {{b}}

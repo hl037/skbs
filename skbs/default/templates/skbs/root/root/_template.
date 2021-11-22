@@ -1,2 +1,2 @@
-## if _p.sft is not None:
-##   exclude()
+ ## if _p.sft:
+ ##   exclude()

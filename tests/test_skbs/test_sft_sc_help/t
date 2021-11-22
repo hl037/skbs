@@ -1,0 +1,6 @@
+## # {{__skbs_template__}}
+## if ask_help :
+##   help = "Dummy help"
+##   raise EndOfPlugin()
+## - 
+not good

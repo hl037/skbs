@@ -1,0 +1,4 @@
+## # {{__skbs_template__}}
+## help = 'Dummy help wrong'
+## raise PluginError('Dummy help')
+not good

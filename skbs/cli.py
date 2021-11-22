@@ -9,7 +9,7 @@ from functools import wraps
 from pathlib import Path
 
 from . import configutils
-from .backend import Backend
+from .backend import Backend, findTemplates
 
 def common_opts(*F):
   def composed(a):
@@ -82,7 +82,7 @@ def installDefaults(symlink):
 @ensureB
 def install(src_directory, name, symlink):
   """
-  Install a new template
+  Install a new template.
   """
   src_directory = Path(src_directory)
   if name is None :
@@ -101,22 +101,34 @@ def uninstall(name):
   click.echo(f'{name} uninstalled at {f}')
 
 @main.command(name='list')
+@click.argument('paths', nargs=-1)
 @ensureB
-def listTemplates():
+def listTemplates(paths):
   """
-  List installed templates
+  List installed templates. If paths are given, search from them instead of the installed ones.
   """
-  default, user = B.listTemplates()
   se = click.secho
-  se('\n')
-  se('User-installed templates :', fg='cyan', nl=False)
-  se('\n  ', nl=False)
-  se("\n  ".join(user), fg='green', nl=False)
-  se('\n\n', nl=False)
-  se('Default templates :', fg='cyan', nl=False)
-  se('\n  ', nl=False)
-  se("\n  ".join(default), fg='green', nl=False)
-  se('\n')
+  if len(paths) == 0 :
+    default, user = B.listTemplates()
+    se('\n')
+    se('User-installed templates :', fg='cyan', nl=False)
+    se('\n  ', nl=False)
+    se("\n  ".join(map(str, user)), fg='green', nl=False)
+    se('\n\n', nl=False)
+    se('Default templates :', fg='cyan', nl=False)
+    se('\n  ', nl=False)
+    se("\n  ".join(map(str, default)), fg='green', nl=False)
+    se('\n')
+
+  else:
+    for p in map(Path, paths) :
+      templates = findTemplates(p, p)
+      se('\n')
+      se(f'Templates found in {p} :', fg='cyan', nl=False)
+      se('\n  ', nl=False)
+      se("\n  ".join(map(str, templates)), fg='green', nl=False)
+      se('\n\n', nl=False)
+      
 
 
 @main.command(name='gen')

@@ -8,7 +8,7 @@ from ._internal_click_monkey_patches import CliError
 class EndOfPlugin(Exception):
   pass
 
-class EndOfTemplate(EndOfPlugin):
+class EndOfTemplate(Exception):
   pass
 
 class IsNotAModuleOrScriptError(Exception):

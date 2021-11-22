@@ -299,6 +299,7 @@ def test_placeholder(simpleBackend, tmp_path, datadir, datadir_copy):
   B.execTemplate(t, str(r4_), None)
   assertDirsEqual(r4, r4_)
   
+# Single file template
 def test_sft(simpleBackend, tmp_path, datadir):
   doTestProcessingSFT(simpleBackend, tmp_path, datadir)
   
@@ -307,6 +308,39 @@ def test_sft_include(simpleBackend, tmp_path, datadir):
   
 def test_sft_plugin(simpleBackend, tmp_path, datadir):
   doTestProcessingSFT(simpleBackend, tmp_path, datadir)
-  
-  
 
+# Self-contained single file template
+def test_sft_sc_no_synheader(simpleBackend, tmp_path, datadir):
+  doTestProcessingSFT(simpleBackend, tmp_path, datadir)
+
+def test_sft_sc_synheader_custom(simpleBackend, tmp_path, datadir):
+  doTestProcessingSFT(simpleBackend, tmp_path, datadir)
+
+def test_sft_sc_synheader_default(simpleBackend, tmp_path, datadir):
+  doTestProcessingSFT(simpleBackend, tmp_path, datadir)
+
+
+def test_sft_sc_help(simpleBackend, datadir):
+  B, _ = simpleBackend
+  t = Path(datadir['t'])
+  b, h = B.execTemplate(t, '@help', None)
+  assert not b
+  assert 'Dummy help' == h
+  
+def test_sft_sc_help_docstring(simpleBackend, datadir):
+  B, _ = simpleBackend
+  t = Path(datadir['t'])
+  b, h = B.execTemplate(t, '@help', None)
+  assert not b
+  assert 'Dummy help' == h
+  b, h = B.execTemplate(t, '_help', ['--help'])
+  assert not b
+  assert 'Dummy help' == h
+  
+def test_sft_sc_help_forced(simpleBackend, tmp_path, datadir):
+  B, _ = simpleBackend
+  t = Path(datadir['t'])
+  b, h = B.execTemplate(t, str(tmp_path/'_'), None)
+  assert not b
+  assert 'Dummy help' == h
+  assert not (tmp_path/'_').exists()

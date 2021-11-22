@@ -306,22 +306,22 @@ if the first prefix is omited, *forced* is assumed, and if the second is ommited
 This behaviour and the prefixes can be changed.
 
 
-Alternatively, a template could also be a single file template if ``root`` is a file instead of a directory.
-In this case, the ``root`` file is the only file. It is considered *forced* and *template*. The ``is_opt`` can be set to change the *optional* flag from inside the template.
-A directory ``__include`` can be present at the same level to include files in it from the template. A plugin.py can also be present to add more complexe logic.
+Single file template
+====================
+Alternatively, a template could also be a single file.
+In this case, the first line of the file defines the synthax::
 
-This is the file tree structure of a single-file template : 
+   <code block marker> # <expr start>value<expr end>
 
-.. code-block::
+For example, the Tempiny C synthax would be defined as::
 
-   /template/
-   | - plugin.py (optional)
-   | - root
-   | - __include/ (optional)
-   |   | - _raw.include_file1
-   |   | - _template.include_file2
-   |    \___
-    \___
+   //# # {{value}}
+
+You can also keep the plugin.py way if you want. in this case, the template is named as the containing directory, and root should be a file. The tempiny synthax should be defined in the plugin.py as for regular directory template. A directory ``__include`` can be present at the same level to include files in it from the template. A plugin.py can also be present to add more complexe logic.
+
+In both cases, the file is considered *forced* and *template*. The ``is_opt`` global variable can be set from inside a code block of the template to change the *optional* flag.
+
+The output name of a single file template is the one provided by the user at template invokation. It can be overrided using the ``new_path`` mechanism.
 
 ``plugin.py``
 -------------
@@ -481,8 +481,8 @@ the default @skbs template provides the click boiler plate to handle the --help 
 User API Reference
 ++++++++++++++++++
 
-plugin.py and templates
-=======================
+plugin.py and single file templates
+===================================
 
 invokeTemplate(template_name:str, dest:str, args:list[str], out_f:file | None: None)
 ------------------------------------------------------------------------------------

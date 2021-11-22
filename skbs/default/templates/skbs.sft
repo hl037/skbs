@@ -1,0 +1,93 @@
+ ## # {{__skbs_template__}}
+ ## __doc__ = """
+ ## skbs Meta-Template =D
+ ## This is the template to generate the base skeleton of a custom skbs template
+ ## """
+ ## breakpoint()
+ ## import click
+ ## from pathlib import Path
+ ## from skbs.backend import tempinySyntaxRegex
+ ## import re
+ ## from tempiny import Tempiny
+ ## 
+ ## @click.command(help=__doc__)
+ ## @click.option('--click', '-c', is_flag=True, help='Generate click command bootstrap')
+ ## @click.option('--src', '-i', type=str, default=None, help='The source file for the content of the sft')
+ ## @click.option('--syn', '-y', type=(str,str,str), help="Tempiny synthax : stmt_line_start begin_expr end_expr", default=None)
+ ## def main(**kwargs):
+ ##   syn = kwargs['syn']
+ ##   src = kwargs['src']
+ ##   _p.update(kwargs)
+ ##   _p.dest = dest
+ ##   if (
+ ##     (src and (src := Path(src)).is_file()) or
+ ##     (src := dest).is_file()
+ ##   ) :
+ ##     with open(src, 'r') as f :
+ ##       l = list(f)
+ ##     -
+ ##     m = re.match(tempinySyntaxRegex, l[0])
+ ##     if m:
+ ##       l = l[1:]
+ ##       if syn is None :
+ ##         syn = dict(stmt_line_start=m[1], begin_expr=m[2], end_expr=m[3])
+ ##       -
+ ##       _p.syn = syn
+ ##     -
+ ##     _p.content = '\n'.join(l)
+ ##   -
+ ##   else :
+ ##     _p.content = None
+ ##   -
+ ##   if _p.syn is None :
+ ##     _p.syn = Tempiny.PY
+ ##   -
+ ##   _p.cc = _p.syn['stmt_line_start']
+ ##   _p.bb = _p.syn['begin_expr']
+ ##   _p.ee = _p.syn['end_expr']
+ ## -
+ ## 
+ ## with click.Context(main) as ctx:
+ ##   __doc__ = main.get_help(ctx)
+ ## -
+ ## 
+ ## if ask_help :
+ ##   raise EndOfPlugin()
+ ## -
+ ## 
+ ## invokeCmd(main, args)
+ ## 
+{{_p.syn['stmt_line_start']}} # {{_p.syn['begin_expr']}}value{{_p.syn['end_expr']}}
+ ## if _p.content is None :
+{{_p.cc}} __doc__ = """
+{{_p.cc}} Template {{dest.name}}
+{{_p.cc}} """
+ ## -
+ ## if _p.click:
+{{_p.cc}} plugin = C()
+{{_p.cc}} 
+{{_p.cc}} @click.command(help=__doc__)
+{{_p.cc}} def main(**kwargs):
+{{_p.cc}}   plugin.update(kwargs)
+{{_p.cc}} -
+{{_p.cc}} 
+{{_p.cc}} with click.Context(main) as ctx:
+{{_p.cc}}   __doc__ = main.get_help(ctx)
+{{_p.cc}} -
+{{_p.cc}} 
+{{_p.cc}} if ask_help :
+{{_p.cc}}  raise EndOfPlugin()
+{{_p.cc}} -
+{{_p.cc}} 
+{{_p.cc}} invokeCmd(main, args)
+ ## -
+ ## elif _p.content is None :
+{{_p.cc}}
+{{_p.cc}} if ask_help :
+{{_p.cc}}  raise EndOfPlugin()
+{{_p.cc}} -
+{{_p.cc}}
+ ## -
+ ## if _p.content is not None:
+{{_p.content}}
+ ## -

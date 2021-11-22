@@ -7,16 +7,19 @@ import pkg_resources
 import sys
 import os
 import shutil
-from .pluginutils import Config as C, EndOfPlugin, PluginError, ExcludeFile, exclude, pluginError, endOfTemplate, invokeCmd, OptionParser
+from .pluginutils import Config as C, EndOfPlugin, PluginError, ExcludeFile, exclude, pluginError, EndOfTemplate, endOfTemplate, invokeCmd, OptionParser
 from tempiny import Tempiny
 from itertools import accumulate, chain
 import io
 import click
+import linecache
 
 from traceback import print_exc
 
 import time
 import json
+
+sys.excepthook = print_exc
 
 APP = 'skbs'
 
@@ -300,6 +303,18 @@ class OutStream(object):
     self._placeholders.clear()
     self.cur_section = None
 
+def extractHelpFromLocals(loc):
+  return next(( h for k in ('__doc__', 'help') if (h := loc.get(k)) ), 'No help provided for this template' ) 
+  
+
+def findTemplates(d: Path, root: Path):
+  for c in d.iterdir() :
+    if c.name == 'root' :
+      yield c.parent.relative_to(root)
+    elif c.is_dir() :
+      yield from findTemplates(c, root)
+      
+tempinySyntaxRegex = r'^(\s*\S+)\s+\#\s+(\S+)__skbs_template__(\S+)\s*$'
 
 class Backend(object):
   OPT_PREFIX = '_opt.'
@@ -326,8 +341,8 @@ class Backend(object):
     default_dir = self.config.template_dir/'default/templates'
     user_dir = self.config.template_dir/'templates'
     return (
-      [ p.name for p in default_dir.iterdir()] if default_dir.is_dir() else [],
-      [ p.name for p in user_dir.iterdir()] if user_dir.is_dir() else []
+      list(findTemplates(default_dir)) if default_dir.is_dir() else [],
+      list(findTemplates(user_dir)) if user_dir.is_dir() else []
     )
 
   def installDefaultTemplates(self, symlink=False):
@@ -412,7 +427,7 @@ class Backend(object):
         exec(obj, g.asDict(), g)
       except EndOfPlugin:
         pass
-    help = next(( h for k in ('__doc__', 'help') if (h := g.get(k)) ), 'No help provided for this template' ) 
+    help = extractHelpFromLocals(g)
     if ask_help :
       raise PluginError(help)
     conf = g.get('conf')
@@ -428,6 +443,7 @@ class Backend(object):
       tempiny_l = [ (pattern, Tempiny(**c)) for pattern, c in conf.tempiny ]
     else:
       tempiny_l = [ ('*', Tempiny()) ]
+    
     file_name_parser = FileNameParser(
       conf.get('opt_prefix', self.OPT_PREFIX),
       conf.get('force_prefix', self.FORCE_PREFIX),
@@ -455,7 +471,9 @@ class Backend(object):
     if single_file_authorized and p.is_file() :
       return p
     if not p.is_dir() :
-      raise FileNotFoundError(p)
+      if not p.is_file() :
+        raise FileNotFoundError(p)
+      return p
     return p
 
   @staticmethod
@@ -505,7 +523,7 @@ class Backend(object):
     _locals.dest = out_p
     _locals.parent = out_p.parent if out_p is not None else None
     _locals.sls, _locals.be, _locals.ee = tempiny.conf
-    template = tempiny.compile(in_f, filename=in_p)
+    template = tempiny.compile(in_f, filename=in_p, add_to_linecache=True)
     return template(out_f, _locals.asDict())
 
   @classmethod
@@ -527,8 +545,10 @@ class Backend(object):
         if exc :
           try :
             raise exc
-          except EndOfPlugin:
+          except EndOfTemplate:
             pass
+          except EndOfPlugin:
+            raise PluginError(extractHelpFromLocals(_locals))
           except ExcludeFile:
             return _locals
       out_p = _locals.get('new_path', out_p)
@@ -550,12 +570,14 @@ class Backend(object):
         with out_p.open('w') as out_f :
           out_f.write(tmp_out_f.getvalue())
       tmp_out_f.close()
+      return _locals
     else:
       out_p = dest / out_p
       if is_opt :
         if out_p.exists() :
           return C()
       shutil.copyfile(in_p, out_p)
+      return C()
   @staticmethod
   def processDir(base_locals, in_p, out_p, file_name_parser):
     path = in_p / file_name_parser.dir_template_filename
@@ -567,7 +589,7 @@ class Backend(object):
     _locals.dest = out_p
     try:
       exec(obj, _locals.asDict(), _locals)
-    except EndOfPlugin:
+    except EndOfTemplate:
       pass
     except ExcludeFile:
       return None
@@ -585,7 +607,20 @@ class Backend(object):
 
     # Template as file
     if template_path.is_file() :
-      tempiny_l, file_name_parser, include_dirname, pathmod_filename = self.parseConf(None)
+      import re
+      with open(template_path, 'r') as f :
+        l = next(f)
+      m = re.fullmatch(tempinySyntaxRegex, l)
+      if m :
+        conf = C(
+          tempiny = [
+            ('*', dict(stmt_line_start=m[1], begin_expr=m[2], end_expr=m[3]))
+          ]
+        )
+      else :
+        conf = C()
+        
+      tempiny_l, file_name_parser, include_dirname, pathmod_filename = self.parseConf(conf)
         
       base_locals = C(
         args = args,
@@ -598,7 +633,7 @@ class Backend(object):
         pluginError=pluginError,
         dest=dest if not ask_help else None,
         parseCmd=OptionParser(args, plugin),
-        
+        inside_skbs_plugin=True,
         plugin=plugin,
         _p=plugin,
         removePrefix=file_name_parser,
