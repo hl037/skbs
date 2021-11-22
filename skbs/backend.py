@@ -341,8 +341,8 @@ class Backend(object):
     default_dir = self.config.template_dir/'default/templates'
     user_dir = self.config.template_dir/'templates'
     return (
-      list(findTemplates(default_dir)) if default_dir.is_dir() else [],
-      list(findTemplates(user_dir)) if user_dir.is_dir() else []
+      list(findTemplates(default_dir, default_dir)) if default_dir.is_dir() else [],
+      list(findTemplates(user_dir, user_dir)) if user_dir.is_dir() else []
     )
 
   def installDefaultTemplates(self, symlink=False):
