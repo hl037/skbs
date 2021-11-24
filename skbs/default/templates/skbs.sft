@@ -63,11 +63,11 @@
 {{_p.cc}} """
  ## -
  ## if _p.click:
-{{_p.cc}} plugin = C()
+{{_p.cc}} _p = C()
 {{_p.cc}} 
 {{_p.cc}} @click.command(help=__doc__)
 {{_p.cc}} def main(**kwargs):
-{{_p.cc}}   plugin.update(kwargs)
+{{_p.cc}}   _p.update(kwargs)
 {{_p.cc}} -
 {{_p.cc}} 
 {{_p.cc}} with click.Context(main) as ctx:

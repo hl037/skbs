@@ -1,4 +1,0 @@
-special case where it is equivalent as 01.00
-(1, 0, 1, 0)
-good
-should be evaluated : {{42}}

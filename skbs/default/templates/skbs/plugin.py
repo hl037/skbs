@@ -28,7 +28,7 @@ from tempiny import Tempiny
 @click.option('--click', '-c', is_flag=True, help='Generate click command bootstrap')
 @click.option('--sft', '-s', is_flag=True, help='Generate a single file template')
 @click.option('--src', '-i', type=str, default=None, help='The source file for the content of the single file template')
-def main(sft_src, **kwargs):
+def main(src, **kwargs):
   sft = kwargs['sft']
   plugin.update(kwargs)
   plugin.dest = dest

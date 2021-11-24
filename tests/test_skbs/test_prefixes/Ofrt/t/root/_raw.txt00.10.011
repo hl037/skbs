@@ -1,0 +1,23 @@
+## is_opt = False 
+o = False
+f = False
+r = True
+t = False
+h = False
+d = True
+v = True
+O = True
+F = False
+R = False
+T = False
+D = False
+template = False
+force = True
+opt = False
+
+
+opt check:
+not good
+
+template check
+should not be evaluated : {{42}}

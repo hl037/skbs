@@ -1,0 +1,22 @@
+o = False
+f = True
+r = False
+t = False
+h = False
+d = False
+v = True
+O = True
+F = False
+R = True
+T = True
+D = False
+template = False
+force = True
+opt = False
+
+
+opt check:
+not good
+
+template check
+should not be evaluated : {{42}}

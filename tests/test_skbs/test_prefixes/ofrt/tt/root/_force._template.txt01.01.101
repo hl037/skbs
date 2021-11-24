@@ -1,0 +1,23 @@
+## # {{__skbs_template__}}
+o = False
+f = True
+r = False
+t = True
+h = True
+d = False
+v = True
+O = False
+F = False
+R = False
+T = False
+D = False
+template = True
+force = True
+opt = False
+
+
+opt check:
+good
+
+template check
+should be evaluated : {{42}}

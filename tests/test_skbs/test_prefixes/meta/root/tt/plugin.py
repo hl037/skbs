@@ -1,3 +1,4 @@
+ ## # <<__skbs_template__>>
 
 try:
   inside_skbs_plugin
@@ -8,16 +9,15 @@ except:
 if ask_help :
   help = """
   Template tt <<_p.dest_name>> : 
-%# for b, name in zip(_p.bits, _p.names):
+ ## for b, name in zip(_p.bits, _p.names):
   - <<'with' if b else 'without'>> <<name>> prefix
-%# -
+ ## -
   """
   raise EndOfPlugin()
 
 conf = C(
-%# for b, name in zip(_p.bits, _p.names):
+ ## for b, name in zip(_p.bits, _p.names):
   <<name>>_prefix = << f"'_{name}.'" if b else 'None'>>,
-%# -
+ ## -
 )
-
 

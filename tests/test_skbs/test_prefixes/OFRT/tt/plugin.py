@@ -22,4 +22,3 @@ conf = C(
   template_prefix = '_template.',
 )
 
-

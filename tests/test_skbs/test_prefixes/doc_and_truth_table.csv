@@ -1,0 +1,59 @@
+            ,                  ,   0  , 1 ,   1  , 0 ,     "opt_pre/raw"
+            ,                  ,   0  , 0 ,   1  , 1 , "force_pre/template"
+
+      0     ,         0        , "?1" , 1 , "?1" , 0 ,
+      1     ,         0        ,  "0" , 0 ,   0  , 0 ,
+      1     ,         1        , "?1" , 0 ,  "?" , 1 ,
+      0     ,         1        ,  "1" , 1 ,   1  , 1 ,
+
+  "opt/raw" , "force/template" ,      ,   ,      ,   ,
+
+formula for force :
+
+
+"This Karnaugh table is the same for the variables :'
+" opt, force, opt_prefix_defined, force_prefix_defined"
+"and"
+" raw, template, raw_pre_def, template_pre_def"
+
+"result : ",
+"0 = opt",
+"1 = force",
+"?b = check if template, if so, use is_opt, else b"
+
+"result : ",
+"0 = template",
+"1 = raw",
+"?b = use synheader line"
+
+"Documentation of meta :
+
+lower_case = 0, UPPER CASE = 1
+
+file :
+o = opt prefix present
+f = force prefix present
+
+r = raw prefix present
+t = template prefix present
+
+h = headline present
+p = optionnal after template
+
+generated template :
+o = opt prefex defined
+f = force prefix defined
+r = raw prefix defined
+t = template prefix defined
+
+
+
+Only one source file : txt00.00.00.
+Then symlink to it.
+
+format is as follow : txtof.rt.hp with of.rt.hp replaced by matching variable value.
+
+of = 11 and rt = 11 are not allowed
+
+
+"

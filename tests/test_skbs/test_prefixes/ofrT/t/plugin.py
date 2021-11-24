@@ -7,7 +7,7 @@ except:
 
 if ask_help :
   help = """
-  Template t ofrT : 
+  Template tt ofrT : 
   - without opt prefix
   - without force prefix
   - without raw prefix
@@ -21,5 +21,4 @@ conf = C(
   raw_prefix = None,
   template_prefix = '_template.',
 )
-
 

@@ -1,0 +1,79 @@
+ ## # <<__skbs_template__>>
+ ## from itertools import chain
+ ## # Defined prefixes :
+ ## O, F, R, T = _p.bits
+ ##
+ ## # Prefixes present in name :
+ ## ind = dest.name.find('txt') + 3
+ ## name = dest.name[ind:]
+ ## o, f, r, t, h, d, v = ( b == '1' for b in name if b != '.' )
+ ##
+ ##
+ ## # Don't want to include undefined behaviors...
+ ## if o and f or r and t:
+ ##   exclude()
+ ## -
+ ##
+ ##
+ ## # is_template :
+ ## template = ( 
+ ##   ( not r and     t   ) or
+ ##   (     t and not R and     T ) or
+ ##   ( not r and     R and not T ) or
+ ##   ( h and (
+ ##     (     r and     t and not R and not T ) or
+ ##     ( not r and not t and not R and not T ) or
+ ##     ( not r and not t and     R and     T )
+ ##   ))
+ ## )
+ ##
+ ##
+ ## # is the file a template, and should opt be defined
+ ## D = d and template
+ ##
+ ## force = ( D and v ) or ( not D and (
+ ##   ( not o and     f ) or
+ ##   ( not o and not F ) or
+ ##   (     f and not O ) or
+ ##   ( not o and     O )
+ ## ))
+ ## opt = not force
+ ##
+ ##
+ ## # Start of the file
+ ##
+ ## new_name = ''
+ ## if o: new_name += '_opt.'
+ ## if f: new_name += '_force.'
+ ## if r: new_name += '_raw.'
+ ## if t: new_name += '_template.'
+ ## new_name += 'txt' + name
+ ## new_path = dest.with_name(new_name)
+ ##
+ ## if h:
+## # {{__skbs_template__}}
+ ## -
+ ## if d:
+## is_opt = <<not v>> 
+ ## -
+ ##
+ ## for var in chain('ofrthdvOFRTD', ('template', 'force', 'opt')):
+<<var>> = <<eval('bool('+var+')')>>
+ ## -
+
+
+opt check:
+ ## if opt :
+good
+ ## -
+ ## else :
+not good
+ ## -
+
+template check
+ ## if template:
+should be evaluated : {{42}}
+ ## -
+ ## else :
+should not be evaluated : {{42}}
+ ## -

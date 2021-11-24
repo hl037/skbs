@@ -19,7 +19,7 @@ conf = C(
   template_prefix = None,
   raw_prefix = '___raw.',
   tempiny = [
-    ('*', T.TEX)
+    ('*', T.PY)
   ],
 )
 

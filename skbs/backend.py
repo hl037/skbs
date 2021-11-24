@@ -1,23 +1,26 @@
 
-from pathlib import Path
+import io
+import json
+import linecache
+import os
+import pkg_resources
+import re
+import shutil
+import sys
+import time
 import traceback
+from pathlib import Path
 from contextlib import contextmanager
 from functools import wraps
-import pkg_resources
-import sys
-import os
-import shutil
-from .pluginutils import Config as C, EndOfPlugin, PluginError, ExcludeFile, exclude, pluginError, EndOfTemplate, endOfTemplate, invokeCmd, OptionParser
-from tempiny import Tempiny
 from itertools import accumulate, chain
-import io
-import click
-import linecache
-
 from traceback import print_exc
 
-import time
-import json
+from tempiny import Tempiny
+from .pluginutils import Config as C, EndOfPlugin, PluginError, ExcludeFile, exclude, pluginError, EndOfTemplate, endOfTemplate, invokeCmd, OptionParser
+
+import click
+
+
 
 sys.excepthook = print_exc
 
@@ -43,11 +46,20 @@ class Include(object):
       raise FileNotFoundError(path_str)
 
     out_path, is_opt, is_template = Backend.parseFilePath(p, self.file_name_parser, None)
+    
+    if is_template != False :
+      with p.open('r') as in_f :
+        tempiny, _ = tempinyFromIterable(in_f)
+      is_template = is_template or (tempiny is not None)
 
     if is_opt :
       raise RuntimeError("An included file can't be optionnal")
     if is_template :
-      tempiny = Backend.getFirstMatch(self.tempiny_l, out_path)
+      if tempiny is None :
+        if out_path :
+          tempiny = Backend.getFirstMatch(self.tempiny_l, out_path)
+        else:
+          _, tempiny = self.tempiny_l[0]
       _locals = C(**self.base_locals, **_locals)
       out = io.StringIO()
       with p.open('r') as in_f :
@@ -80,39 +92,80 @@ class FileNameParser(object):
     if dir_template_filename is not None :
       self.dir_template_filename = dir_template_filename
     else :
-      self.dir_template_filename = template_prefix
+      self.dir_template_filename = template_prefix[0]
       if self.dir_template_filename is None :
         self.dir_template_filename = Backend.TEMPLATE_PREFIX
         
 
   def parse(self, name:str):
-    is_opt = False
-    is_raw = False
-    # See the Karnaugh table
-    if self.opt_prefix :
-      if is_opt := name.startswith(self.opt_prefix) :
-        name = name[len(self.opt_prefix):]
-      elif self.force_prefix :
-        if name.startswith(self.force_prefix) :
-          name = name[len(self.force_prefix):]
-    elif self.force_prefix :
-      if not (is_opt := (not name.startswith(self.force_prefix))) :
-        name = name[len(self.force_prefix):]
-      
-      
-    if self.raw_prefix :
-      if is_raw := name.startswith(self.raw_prefix) :
-        name = name[len(self.raw_prefix):]
-      elif self.template_prefix :
-        if name.startswith(self.template_prefix) :
-          name = name[len(self.template_prefix):]
-    elif self.template_prefix :
-      if not (is_raw := (not name.startswith(self.template_prefix))) :
-        name = name[len(self.template_prefix):]
+    """
+    Formula is as follow : 
+    O : opt prefix is defined
+    F : force prefix is defined
+    R : raw prefix is defined
+    T : template prefix is defined
 
-    is_template = not is_raw
+    o : opt prefex is present in filename
+    f : force prefex is present in filename
+    r : raw prefex is present in filename
+    t : template prefex is present in filename
+
+    h : a synheader line is present at file start
+    d : is_opt is defined
+    v : value of not is_opt
+
+    is_template = !r.t + t.!R.T + !r.R.!T + h(r.t.!R.!T + !r.!t.!R.!T + !r.!t.R.T)
+    
+    D = d.is_template
+
+    force = D.v + !D(!o.f + !o.F + f.!O + !o.O)
+
+    is_opt = !force
+
+    This function returns (name, _is_opt, _is_template)
+    where :
+
+    name : name with prefixed removed
+    _is_opt = !(!o.f + !o.F + f.!O + !o.O)
+    _is_template = {True if !r.t + t.!R.T + !r.R.!T ; False if !(!r.t + t.!R.T + !r.R.!T).!(r.t.!R.!T + !r.!t.!R.!T + !r.!t.R.T); None else }
+
+    """
+    Opre, O = self.opt_prefix
+    Fpre, F = self.force_prefix
+    Rpre, R = self.raw_prefix
+    Tpre, T = self.template_prefix
+    
+    o = False
+    if name.startswith(Opre) :
+      o = True
+      name = name[len(Opre):]
       
-    return name, is_opt, is_template
+    f = False
+    if name.startswith(Fpre) :
+      f = True
+      name = name[len(Fpre):]
+      
+    r = False
+    if name.startswith(Rpre) :
+      r = True
+      name = name[len(Rpre):]
+      
+    t = False
+    if name.startswith(Tpre) :
+      t = True
+      name = name[len(Tpre):]
+
+    #breakpoint()
+
+    Ea = t and ( not r or r and not R and T ) or not r and R and not T
+    Eb = (
+          r and     t and not R and not T or
+      not r and not t and ( not R and not T or R and T )
+    )
+
+    Ec = f and not O or not o and ( f or not F or O)
+
+    return name, not Ec, True if Ea else False if not Ea and not Eb else None
     
   
   def __call__(self, p:Path):
@@ -317,7 +370,27 @@ def findTemplates(d: Path, root: Path):
       else :
         yield c.relative_to(root)
       
-tempinySyntaxRegex = r'^(\s*\S+)\s+\#\s+(\S+)__skbs_template__(\S+)\s*$'
+tempinySyntaxRegex = re.compile(r'^(\s*\S+)\s+\#\s+(\S+)__skbs_template__(\S+)\s*$')
+
+def tempinyFromLine(l):
+  m = tempinySyntaxRegex.fullmatch(l)
+  if not m :
+    return None
+  return Tempiny(stmt_line_start=m[1], begin_expr=m[2], end_expr=m[3])
+
+def tempinyFromIterable(iterable):
+  # New version support template file describing themselves their syntax...
+  it = iter(iterable)
+  first_line = next(it)
+  new_it = chain((first_line,), it)
+  return tempinyFromLine(first_line), new_it
+
+def _get(d, k, default):
+  v = d.get(k, None)
+  if v is None :
+    return default, False
+  return v, True
+  
 
 class Backend(object):
   OPT_PREFIX = '_opt.'
@@ -448,10 +521,10 @@ class Backend(object):
       tempiny_l = [ ('*', Tempiny()) ]
     
     file_name_parser = FileNameParser(
-      conf.get('opt_prefix', self.OPT_PREFIX),
-      conf.get('force_prefix', self.FORCE_PREFIX),
-      conf.get('raw_prefix', self.RAW_PREFIX),
-      conf.get('template_prefix', self.TEMPLATE_PREFIX),
+      _get(conf, 'opt_prefix', self.OPT_PREFIX),
+      _get(conf, 'force_prefix', self.FORCE_PREFIX),
+      _get(conf, 'raw_prefix', self.RAW_PREFIX),
+      _get(conf, 'template_prefix', self.TEMPLATE_PREFIX),
       conf.get('dir_template_filename', None),
     )
     include_dirname = conf.get('include_dirname', self.INCLUDE_DIRNAME)
@@ -531,12 +604,19 @@ class Backend(object):
 
   @classmethod
   def processFile(cls, in_p, out_p, is_opt, is_template, base_locals, tempiny_l, dest, out_f=None):
+    tempiny = None
+    if is_template != False :
+      with in_p.open('r') as in_f :
+        tempiny, _ = tempinyFromIterable(in_f)
+      is_template = is_template or (tempiny is not None)
+
     if is_template :
       tmp_out_f = OutStream()
-      if out_p :
-        tempiny = cls.getFirstMatch(tempiny_l, out_p)
-      else:
-        _, tempiny = tempiny_l[0]
+      if tempiny is None :
+        if out_p :
+          tempiny = cls.getFirstMatch(tempiny_l, out_p)
+        else:
+          _, tempiny = tempiny_l[0]
       with in_p.open('r') as in_f :
         _locals = {
           **base_locals,
