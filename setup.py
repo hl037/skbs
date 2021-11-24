@@ -33,7 +33,7 @@ setup(
     test_suite=None,
     include_package_data=True,
     zip_safe=False,
-    install_requires=['click>=0.7', 'appdirs>=1.4.4', 'tempiny>=1.0'],
+    install_requires=['click>=0.7', 'appdirs>=1.4.4', 'tempiny>=1.1'],
     test_requires=['pytest>=6.2.2', 'pytest_datadir_ng>=1.1.1', 'pytest-cov>=2.11.1'],
     extras_require=None,
     entry_points={
