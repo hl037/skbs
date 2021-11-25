@@ -15,7 +15,7 @@ def read_file(name):
         print("could not read %r" % name)
         f.close()
 
-LONG_DESC = read_file('README.rst') + '\n\n' + read_file('HISTORY.rst')
+LONG_DESC = read_file('README.md') + '\n\n' + read_file('HISTORY.rst')
 
 EXTRAS = {}
 
@@ -24,7 +24,7 @@ setup(
     version='2.2.0',
     description='SKeleton BootStrap, a full-powered yet trivial to use and customize template based bootstrap or code generation tool',
     long_description=LONG_DESC,
-    long_description_content_type='text/x-rst',
+    long_description_content_type='text/markdown',
     author='Léo Flaventin Hauchecorne',
     author_email='hl037.prog@gmail.com',
     url='https://github.com/hl037/skbs',

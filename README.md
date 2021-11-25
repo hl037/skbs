@@ -30,7 +30,7 @@ skbs create-config
 
 Then, you can "install" the default templates (`skbs` and `skbs.sft`) that come with skbs (they are the boilerplate to create templates).
 
-I recommend you to read the Tutorial ( https://github.com/hl037/skbs/wiki/Tutorial ) for a friendly introduction to all skbs features, and [[API_Reference]] if you need further details
+I recommend you to read the Tutorial ( https://github.com/hl037/skbs/wiki/Tutorial ) for a friendly introduction to all skbs features, and API_Reference ( https://github.com/hl037/skbs/wiki/API_Reference ) if you need further details
 
 # Usage
 
