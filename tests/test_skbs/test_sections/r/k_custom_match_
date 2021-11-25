@@ -2,18 +2,18 @@
 Hors section OK
 
 TEST_Section1 and other stuff
-OK
+FAIL
 custom begin, standard end n=1
-OK
+FAIL
 END
 
 Between sections OK
 
 TEST_Section2
-OK
+FAIL
 
 standard begin n=1, custom end
-OK
+FAIL
 
 END and other stuff
 
@@ -21,18 +21,18 @@ OK
 overwrite = None
 
 TEST_Section3 and other stuff
-OK
+FAIL
 custom begin, standard end n=1
-OK
+FAIL
 END
 
 Between sections OK
 
 TEST_Section4
-OK
+FAIL
 
 standard begin n=1, custom end
-OK
+FAIL
 
 END and other stuff
 

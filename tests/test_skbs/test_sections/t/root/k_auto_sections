@@ -1,50 +1,25 @@
-This is outside a section OK
+## keep_only_sections = True
 
-## beginSection()
+This is outside a section.
+
+This should not appear OK
+
+
+
+This is the begin of overwrite=False
+
+## beginSection(overwrite=False)
 SECTION1 BEGIN
 
-Only one line match OK
+Only one line match FAIL
 
 END SECTION1
 ## endSection()
 
-## beginSection(n=3)
-SECTION2 BEGIN
-==============
---------------
-
-3 lines match begin OK
-2 lines match end OK
-
-------------
-END SECTION2
-## endSection(n=2)
-
-
-One line section :
-
-## beginSection()
-TEST ONLINER SECTION OK
-## endSection()
-
-This is the end of overwrite=True
-
-This is the begin of overwrite=False
-
-This is outside a section
-
 OK
 
-## beginSection(overwrite=False)
-SECTION2 BEGIN
-
-Only one line match FAIL
-
-END SECTION2
-## endSection()
-
 ## beginSection(n=3, overwrite=False)
-SECTION3 BEGIN
+SECTION2 BEGIN
 ==============
 --------------
 
@@ -52,17 +27,95 @@ SECTION3 BEGIN
 2 lines match end FAIL
 
 ------------
-END SECTION3
-## endSection(n=2)
+END SECTION2
+## endSection(m=-2)
 
+OK
 
 One line section :
 
 ## beginSection(overwrite=False)
-TEST ONLINER SECTION 2
+TEST ONLINER SECTION 3
 ## endSection()
 
 This is the end of overwrite=False
+
+OK
+
+
+
+This is the begin of overwrite=None
+
+## beginSection()
+SECTION4 BEGIN
+
+Only one line match FAIL 
+
+END SECTION4
+## endSection()
+
+OK
+
+## beginSection(n=3)
+SECTION5 BEGIN
+==============
+--------------
+
+3 lines match begin FAIL
+2 lines match end FAIL
+(overwrite)
+
+------------
+END SECTION5
+## endSection(m=-2)
+
+OK
+
+One line section : 
+
+## beginSection()
+TEST ONLINER SECTION 6
+## endSection()
+
+This is the end of overwrite=None
+
+OK
+
+
+
+This is the begin of overwrite=True
+
+## beginSection(overwrite=True)
+SECTION7 BEGIN
+
+Only one line match OK
+
+END SECTION7
+## endSection()
+
+OK
+
+## beginSection(n=3, overwrite=True)
+SECTION8 BEGIN
+==============
+--------------
+
+3 lines match begin OK
+2 lines match end OK
+
+------------
+END SECTION8
+## endSection(m=-2)
+
+OK
+
+One line section :
+
+## beginSection(overwrite=True)
+TEST ONLINER SECTION 9
+## endSection()
+
+This is the end of overwrite=True
 
 OK
 

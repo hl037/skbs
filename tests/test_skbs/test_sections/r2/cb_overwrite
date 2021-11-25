@@ -1,0 +1,23 @@
+
+Outside : OK
+
+B SECTION
+ORIG : 
+B SECTION
+
+FAIL (ori)
+
+E SECTION
+
+VIRT :
+B SECTION
+
+FAIL
+
+E SECTION
+CTX :
+{'o': {'lines': ['', 'Outside : OK', '', 'B SECTION', '', 'FAIL (ori)', '', 'E SECTION', '', 'Outside : OK', ''], 'sec_b': 3, 'sec_e': 8}, 'v': {'lines': ['', 'Outside : FAIL', '', 'B SECTION', '', 'FAIL', '', 'E SECTION', '', 'Outside : FAIL', ''], 'sec_b': 3, 'sec_e': 8}, 'keep_only_sections': False}
+E SECTION
+
+Outside : OK
+

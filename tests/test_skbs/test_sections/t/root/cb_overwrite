@@ -1,0 +1,28 @@
+## def ow(orig, virt, ctx):
+##   return [
+##     'B SECTION',
+##     'ORIG : ',
+##     *orig,
+##     '',
+##     'VIRT :',
+##     *virt,
+##     'CTX :',
+##     repr(ctx()),
+##     'E SECTION',
+##   ]
+## -
+##
+## keep_only_sections = False
+
+Outside : FAIL
+
+## beginSection(overwrite=ow)
+B SECTION
+
+FAIL
+
+E SECTION
+## endSection()
+
+Outside : FAIL
+

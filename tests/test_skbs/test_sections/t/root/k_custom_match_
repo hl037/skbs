@@ -1,6 +1,6 @@
-## keep_only_sections = False
+## keep_only_sections = True
 
-Hors section FAIL
+Hors section OK
 
 ## beginSection(cb=lambda lines, i:'TEST_Section1' in lines[i], overwrite=False)
 TEST_Section1 and other stuff
@@ -10,7 +10,7 @@ FAIL
 END
 ## endSection()
 
-Between sections FAIL
+Between sections OK
 
 ## beginSection(overwrite=False)
 TEST_Section2
@@ -22,30 +22,30 @@ FAIL
 END and other stuff
 ## endSection(cb=lambda lines, i:'END' in lines[i-1])
 
-FAIL
+OK
 overwrite = None
 
 ## beginSection(cb=lambda lines, i:'TEST_Section3' in lines[i])
 TEST_Section3 and other stuff
-OK
+FAIL
 custom begin, standard end n=1
-OK
+FAIL
 END
 ## endSection()
 
-Between sections FAIL
+Between sections OK
 
 ## beginSection()
 TEST_Section4
-OK
+FAIL
 
 standard begin n=1, custom end
-OK
+FAIL
 
 END and other stuff
 ## endSection(cb=lambda lines, i:'END' in lines[i-1])
 
-FAIL
+OK
 overwrite = True
 
 ## beginSection(cb=lambda lines, i:'TEST_Section5' in lines[i], overwrite=True)
@@ -56,7 +56,7 @@ OK
 END
 ## endSection()
 
-Between sections FAIL
+Between sections OK
 
 ## beginSection(overwrite=True)
 TEST_Section6
@@ -68,8 +68,9 @@ OK
 END and other stuff
 ## endSection(cb=lambda lines, i:'END' in lines[i-1])
 
-FAIL
+OK
 End of file
 
-FAIL
+OK
+
 

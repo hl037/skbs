@@ -23,9 +23,9 @@ SECTION1 BEGIN
 
 ------------
 END SECTION1
-## endSection(n=2)
+## endSection(m=-2)
 
-## placeholder('PL1')
+## placeholder('PL1', m=0, n=1)
 PL1
 
 FAIL
@@ -61,10 +61,10 @@ SECTION2 BEGIN
 
 ------------
 END SECTION2
-## endSection(n=2)
+## endSection(m=-2)
 
 
-## placeholder('PL2')
+## placeholder('PL2', m=0, n=1)
 PL2
 
 FAIL

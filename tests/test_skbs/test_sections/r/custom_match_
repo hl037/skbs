@@ -1,13 +1,13 @@
 
-Hors section OK
+Hors section FAIL
 
 TEST_Section1 and other stuff
 FAIL
 custom begin, standard end n=1
 FAIL
-FIN
+END
 
-Between sections
+Between sections FAIL
 
 TEST_Section2
 FAIL
@@ -15,10 +15,48 @@ FAIL
 standard begin n=1, custom end
 FAIL
 
-FIN and other stuff
+END and other stuff
 
+FAIL
+overwrite = None
 
+TEST_Section3 and other stuff
+OK
+custom begin, standard end n=1
+OK
+END
+
+Between sections FAIL
+
+TEST_Section4
+OK
+
+standard begin n=1, custom end
+OK
+
+END and other stuff
+
+FAIL
+overwrite = True
+
+TEST_Section5 and other stuff
+OK
+custom begin, standard end n=1
+OK
+END
+
+Between sections FAIL
+
+TEST_Section6
+OK
+
+standard begin n=1, custom end
+OK
+
+END and other stuff
+
+FAIL
 End of file
 
-OK
+FAIL
 

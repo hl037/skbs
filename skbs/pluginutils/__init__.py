@@ -3,7 +3,7 @@ import io
 import click
 from click.exceptions import Exit, Abort, ClickException
 from contextlib import contextmanager
-from ._internal_click_monkey_patches import CliError
+from .._internal_click_monkey_patches import CliError
 
 class EndOfPlugin(Exception):
   pass
@@ -48,7 +48,7 @@ def invokeCmd(cmd, args, **extra):
   Invoke a click command, so that the usage will be adapted to fit the parent command if one.
   **extra are passed to cmd.make_context
   """
-  from ._internal_click_monkey_patches import __get_help_option, silentClick
+  from .._internal_click_monkey_patches import __get_help_option, silentClick
   stderr = io.StringIO()
   with silentClick(stderr):
     try :

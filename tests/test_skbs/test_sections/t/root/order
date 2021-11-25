@@ -1,0 +1,87 @@
+## keep_only_sections=False
+A
+
+## beginSection(placeholder='B')
+BEGIN
+n1
+END
+## endSection()
+
+B
+
+## beginSection(placeholder='A')
+BEGIN
+n2
+END
+## endSection()
+
+C
+
+## beginSection(placeholder='B')
+BEGIN
+n3
+END
+## endSection()
+
+(Placeholder A)
+## placeholder('A')
+
+D
+
+## beginSection(placeholder='A')
+BEGIN
+n4
+END
+## endSection()
+
+E
+
+## beginSection(placeholder='B')
+BEGIN
+n5
+END
+## endSection()
+
+(Placeholder B)
+## placeholder('B')
+
+F
+
+## beginSection(placeholder='A')
+BEGIN
+n6
+END
+## endSection()
+
+G
+
+## beginSection(placeholder='B')
+BEGIN
+n7
+END
+## endSection()
+
+H
+
+## beginSection(placeholder='A')
+BEGIN
+n8
+END
+## endSection()
+
+I
+
+## beginSection(placeholder='B')
+BEGIN
+n9
+END
+## endSection()
+
+J
+
+## beginSection(placeholder='A')
+BEGIN
+n10
+END
+## endSection()
+

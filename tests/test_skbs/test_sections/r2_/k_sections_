@@ -1,42 +1,21 @@
 
-This is outside a section FAIL
+This is outside a section.
 
-SECTION1 BEGIN
-
-Only one line match FAIL
-
-END SECTION1
-
-SECTION2 BEGIN
-==============
---------------
-
-3 lines match begin FAIL
-2 lines match end FAIL
-
-------------
-END SECTION2
+This should not appear FAIL
 
 
-One line section :
-
-TEST ONLINER SECTION FAIL
-
-This is the end of overwrite=True 
 
 This is the begin of overwrite=False
 
-This is outside a section
+SECTION1 BEGIN
+
+Only one line match OK
+
+END SECTION1
 
 FAIL
 
 SECTION2 BEGIN
-
-Only one line match OK
-
-END SECTION2
-
-SECTION3 BEGIN
 ==============
 --------------
 
@@ -44,14 +23,80 @@ SECTION3 BEGIN
 2 lines match end OK
 
 ------------
-END SECTION3
+END SECTION2
 
+FAIL
 
 One line section :
 
-TEST ONLINER SECTION 2
+TEST ONLINER SECTION 3
 
 This is the end of overwrite=False
+
+FAIL
+
+
+
+This is the begin of overwrite=None
+
+SECTION4 BEGIN
+
+Only one line match OK 
+
+END SECTION4
+
+FAIL
+
+SECTION5 BEGIN
+==============
+--------------
+
+3 lines match begin OK
+2 lines match end OK
+(overwrite)
+
+------------
+END SECTION5
+
+FAIL
+
+One line section : 
+
+TEST ONLINER SECTION 6
+
+This is the end of overwrite=None
+
+FAIL
+
+
+
+This is the begin of overwrite=True
+
+SECTION7 BEGIN
+
+Only one line match FAIL
+
+END SECTION7
+
+FAIL
+
+SECTION8 BEGIN
+==============
+--------------
+
+3 lines match begin FAIL
+2 lines match end FAIL
+
+------------
+END SECTION8
+
+FAIL
+
+One line section :
+
+TEST ONLINER SECTION 9
+
+This is the end of overwrite=True
 
 FAIL
 

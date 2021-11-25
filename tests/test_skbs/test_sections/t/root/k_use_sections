@@ -1,4 +1,5 @@
 ## use_sections = True
+## keep_only_sections = True
 
-This should get overwritten, It is so it's ok
+This should get overwritten, if it is so it's ok
 

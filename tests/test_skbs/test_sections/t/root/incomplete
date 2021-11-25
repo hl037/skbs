@@ -1,0 +1,37 @@
+## keep_only_sections=False
+
+pl
+## placeholder('A')
+
+## beginSection(placeholder='A')
+BEGIN SECTION1
+
+sec1...
+
+END1
+## endSection()
+
+## beginSection(placeholder='A')
+BEGIN SECTION2
+
+sec2...
+
+END2
+## endSection()
+
+## beginSection(placeholder='A')
+BEGIN SECTION34
+
+sec3...
+
+END3
+## endSection()
+
+## beginSection(placeholder='A')
+BEGIN SECTION34
+
+sec4...
+
+END4
+## endSection()
+

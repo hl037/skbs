@@ -21,7 +21,7 @@ SECTION2 BEGIN
 
 ------------
 END SECTION2
-## endSection(n=2)
+## endSection(m=-2)
 
 
 One line section :
@@ -54,7 +54,7 @@ SECTION3 BEGIN
 
 ------------
 END SECTION3
-## endSection(n=2)
+## endSection(m=-2)
 
 
 One line section : OK

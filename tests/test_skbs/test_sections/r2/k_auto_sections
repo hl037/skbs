@@ -1,4 +1,11 @@
-This is outside a section OK
+
+This is outside a section.
+
+This should not appear OK
+
+
+
+This is the begin of overwrite=False
 
 SECTION1 BEGIN
 
@@ -6,36 +13,9 @@ Only one line match OK
 
 END SECTION1
 
-SECTION2 BEGIN
-==============
---------------
-
-3 lines match begin OK
-2 lines match end OK
-
-------------
-END SECTION2
-
-
-One line section :
-
-TEST ONLINER SECTION OK
-
-This is the end of overwrite=True
-
-This is the begin of overwrite=False
-
-This is outside a section
-
 OK
 
 SECTION2 BEGIN
-
-Only one line match OK
-
-END SECTION2
-
-SECTION3 BEGIN
 ==============
 --------------
 
@@ -43,14 +23,80 @@ SECTION3 BEGIN
 2 lines match end OK
 
 ------------
-END SECTION3
+END SECTION2
 
+OK
 
 One line section :
 
-TEST ONLINER SECTION 2
+TEST ONLINER SECTION 3
 
 This is the end of overwrite=False
+
+OK
+
+
+
+This is the begin of overwrite=None
+
+SECTION4 BEGIN
+
+Only one line match OK 
+
+END SECTION4
+
+OK
+
+SECTION5 BEGIN
+==============
+--------------
+
+3 lines match begin OK
+2 lines match end OK
+(overwrite)
+
+------------
+END SECTION5
+
+OK
+
+One line section : 
+
+TEST ONLINER SECTION 6
+
+This is the end of overwrite=None
+
+OK
+
+
+
+This is the begin of overwrite=True
+
+SECTION7 BEGIN
+
+Only one line match OK
+
+END SECTION7
+
+OK
+
+SECTION8 BEGIN
+==============
+--------------
+
+3 lines match begin OK
+2 lines match end OK
+
+------------
+END SECTION8
+
+OK
+
+One line section :
+
+TEST ONLINER SECTION 9
+
+This is the end of overwrite=True
 
 OK
 

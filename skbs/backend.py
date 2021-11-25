@@ -155,8 +155,6 @@ class FileNameParser(object):
       t = True
       name = name[len(Tpre):]
 
-    #breakpoint()
-
     Ea = t and ( not r or r and not R and T ) or not r and R and not T
     Eb = (
           r and     t and not R and not T or
@@ -182,14 +180,14 @@ class OutStream(object):
   class PlaceholderWithKeepOnlySections(RuntimeError):
     pass
 
+  class MatchWithZeroLines(RuntimeError):
+    pass
+
   @staticmethod
-  def matcher(m_lines, begin):
-    if begin :
-      def match(lines, i):
-        return lines[i:i+len(m_lines)] == m_lines
-    else :
-      def match(lines, i):
-        return lines[i-len(m_lines):i] == m_lines
+  def matcher(m_lines, offset=0):
+    def match(lines, i):
+      i += offset
+      return lines[i:i+len(m_lines)] == m_lines
     return match
 
   class Section(object):
@@ -213,19 +211,19 @@ class OutStream(object):
     """
     
     """
-    def __init__(self, name, f, begin_line):
+    def __init__(self, name, cb, begin_line):
       self.name = name
-      self.f = f
+      self.cb = cb
       self.begin_line = begin_line
       self.ori_end_line = begin_line
       self.ori_begin_line = None
       self.ori_end_line = None
       self.sections = []
-      self.begin = f
+      self.begin = cb
       self.end = lambda *args, **kwargs:True
 
     def __repr__(self):
-      return f'Placeholder(name={self.name}, f={self.f}, bl={self.begin_line}, o_bl={self.ori_begin_line}, n_sec={len(self.sections)})'
+      return f'Placeholder(name={self.name}, cb={self.cb}, bl={self.begin_line}, o_bl={self.ori_begin_line}, n_sec={len(self.sections)})'
       
   def __init__(self):
     self.lines = []
@@ -234,48 +232,73 @@ class OutStream(object):
     self._placeholders = []
     self.placeholders = []
 
-  def beginSection(self, n=1, f=None, placeholder=None, overwrite=True):
+  def beginSection(self, m=0, n=1, cb=None, placeholder=None, overwrite=None):
     """
     Start an overwritten section.
-    @param f : A calback function ``f(lines, i)`` where ``lines`` is a list of the lines in the original file. The function should return true if it matches.
-    @param n : If ``f`` is None, Then the ``n`` following lines in the "virtually" outputed template (as if it were run for the first time) will be the line to match exactly in the original file to tag the section start.
+    
+    @param cb : A calback function ``cb(lines, i)`` where ``lines`` is a list of the lines in the original file, and ``i`` is the index of the current line being checked. The function should return true if lines[i] is the first line inside the section.
+    @param n
+    @param m : If ``cb`` is None, Then the section begin will try to match ``lines[cur + m : cur + n]`` in both the virtual output template and the original file.
     @param placeholder If a placeholder is specified and the original file does not have this section, then it will be put just before the placeholder (so that further added sections go always to the end)
+    @param overwrite : is True, use the content from the tempalte's virtual output, else, use the content of the original file.
+If left unset or ``None``, will have ``not keep_only_sections`` as value to get an intuitive behavior
+It can also be to a callable object with this signature : ``overwrite(original: list[str], virtual: list[str], ctx: Callable[[], 'Context']) -> list[str]``. Where ``origninal`` and ``virtual`` are respectively the content of the matched section. ctx is a callable to obtain the context, it returns an object with the follwing attributes read-only:
+
+ * ``o`` : Original file :
+    * ``o.lines`` : original file lines
+    * ``o.sec_b`` : begin of section
+    * ``o.sec_e`` : end of section
+ * ``v`` Virtual output :
+    * ``o.lines`` : original file lines
+    * ``o.sec_b`` : begin of section
+    * ``o.sec_e`` : end of section
+ * ``keep_only_sections``
     """
+    if m == n :
+      raise self.MatchWithZeroLines('A placeholder was create with n == 0')
     if self.cur_section is not None :
       raise OutStream.AlreadyInSectionError("Sections cannot be nested")
-    self.cur_section = OutStream.Section(placeholder, overwrite), len(self.lines), n, f
+    self.cur_section = OutStream.Section(placeholder, overwrite), len(self.lines), m, n, cb
 
 
-  def endSection(self, n=1, f=None):
+  def endSection(self, m=-1, n=0, cb=None):
     """
     End an overwritten section.
-    @param f : ``f`` is a calback function ``f(lines, i)`` where ``lines`` is a list of the lines in the original file. The function should return true if it matches.
-    @param n : If ``f`` is None, Then the ``n`` previous lines in the "virtually" outputed template (as if it were run for the first time) will be the line to match exactly in the original file to tag the section end.
+    
+    @param cb : ``cb`` is a calback function ``cb(lines, i)`` where ``lines`` is a list of the lines in the original file, and ``i`` is the index of the current line being checked. The function should return true if lines[i] is the last line (inclusive) inside the section.
+    @param n
+    @param m : If ``cb`` is None, Then the section end will try to match ``lines[cur + m : cur + n]`` in both the virtual output template and the original file.
     """
-    section, i, n, f_s = self.cur_section
+    if m == n :
+      raise self.MatchWithZeroLines('A placeholder was create with n == 0')
+    section, i, b_m, b_n, cb_begin = self.cur_section
     end = len(self.lines)
-    if f_s is None :
-      f_s = self.matcher(self.lines[i:i+n], begin=True)
-    if f is None :
-      f = self.matcher(self.lines[end-n:end], begin=False)
-    section.begin = f_s
-    section.end = f
+    if cb_begin is None :
+      cb_begin = self.matcher(self.lines[i + b_m : i + b_n], offset=b_m)
+    if cb is None :
+      cb = self.matcher(self.lines[end + m : end + n], offset=m)
+    section.begin = cb_begin
+    section.end = cb
     section.begin_line = i
     section.end_line = end
     self.cur_section = None
     self.sections.append(section)
   
-  def placeholder(self, name, n=1, f=None):
+  def placeholder(self, name, m=-1, n=0, cb=None):
     """
     Defines a placeholder
+    
     @param name : name of the placeholder
-    @param f : ``f`` is a calback function ``f(lines, i)`` where ``lines`` is a list of the lines in the original file. The function should return true if it matches.
+    @param cb : ``cb`` is a calback function ``cb(lines, i)`` where ``lines`` is a list of the lines in the original file, and ``i`` is the index of the current line being checked. The function should return true if the section should be inserted between lines[i] and lines[i+1]
 
-    @param n : If ``f`` is None, Then the ``n`` previous lines in the "virtually" outputed template (as if it were run for the first time) will be the line to match exactly in the original file to tag the placeholder.
+    @param n
+    @param m : If ``cb`` is None, Then the placeholder will try to match ``lines[cur + m : cur + n]`` in both the virtual output template and the original file.
     """
+    if m == n :
+      raise self.MatchWithZeroLines('A placeholder was create with n == 0')
     if self.cur_section is not None :
       raise OutStream.AlreadyInSectionError("A placeholder cannot be placed inside a section")
-    self.sections.append((name, len(self.lines), n, f))
+    self.sections.append((name, len(self.lines), m, n, cb))
   
   def write(self, s):
     self.lines.extend(s.split('\n')[:-1])
@@ -283,10 +306,33 @@ class OutStream(object):
   def getvalue(self):
     return "\n".join(self.lines) + '\n'
 
-  def newPlacehoder(self, name, i, n, f, /, keep_only_sections):
-    if keep_only_sections :
-      raise self.PlaceholderWithKeepOnlySections("No placeholder can be set if `keep_only_sections` is True") 
-    return self.Placeholder(name, f if f else self.matcher(self.lines[i:i+n], begin=True), i)
+  def newPlacehoder(self, name, i, m, n, cb, /, keep_only_sections):
+    return self.Placeholder(name, cb if cb else self.matcher(self.lines[i + m : i + n], m), i)
+
+  class ContextFactory(object):
+    """
+    Used to provide the `ctx()` callback to overwrite callbacks
+    """
+    def __init__(self, orig, virt, keep_only_sections):
+      self.orig = orig
+      self.virt = virt
+      self.section = None
+      self.keep_only_sections = keep_only_sections
+
+    def ctx(self):
+      return C(
+        o=C(
+          lines = self.orig,
+          sec_b = self.section.ori_begin_line,
+          sec_e = self.section.ori_end_line,
+        ),
+        v=C(
+          lines = self.virt,
+          sec_b = self.section.begin_line,
+          sec_e = self.section.end_line,
+        ),
+        keep_only_sections=self.keep_only_sections,
+      )
   
   def end(self, out_p, use_sections, keep_only_sections):
     """
@@ -300,34 +346,54 @@ class OutStream(object):
     with open(out_p) as f :
       lines = [ l[:-1] for l in f ]
     
-    candidate_sections = [ s if isinstance(s, self.Section) else self.newPlacehoder(*s, keep_only_sections=keep_only_sections) for s in self.sections ]
+    if keep_only_sections :
+      candidate_sections = [ s for s in self.sections if isinstance(s, self.Section) ]
+    else :
+      candidate_sections = [ s if isinstance(s, self.Section) else self.newPlacehoder(*s, keep_only_sections=keep_only_sections) for s in self.sections ]
     
     sections = []
     # match sections in any order
-    I = iter(range(len(lines)))
-    for i in I:
-      j, s = next(
-        (
+    i = 0
+    while i < len(lines) :
+      it = iter(
           (j, s) for j, s in enumerate(candidate_sections) if s.begin(lines, i)
-        ),
-        (None, None)
       )
-      if j is not None :
+      j, s = next(it, (None, None))
+      while j is not None :
         s.ori_begin_line = i
-        candidate_sections.pop(j)
-        for i in I :
-          if s.end(lines, i) :
-            s.ori_end_line = i
+        for i2 in range(i, len(lines) + 1) :
+          if s.end(lines, i2) :
+            s.ori_end_line = i2
             sections.append(s)
+            candidate_sections.pop(j)
+            i = i2
             break
+        else :
+          # The section did not end... Try next the one
+          j, s = next(it, (None, None))
+          continue
+        break
+      else :
+        # We tried all the sections without success... step.
+        i += 1
+
     # Remaining sections are the one not matched
     pldict = { pl.name : pl for pl in sections if isinstance(pl, self.Placeholder) }
-    
 
+    contextFactory = self.ContextFactory(lines, self.lines, keep_only_sections)
+    ctx = contextFactory.ctx
+    
     if keep_only_sections :
       # Replace sections in template with original file ones, except if overwrite
-      for s in reversed(self.sections) :
-        if not s.overwrite :
+      for s in reversed(sections) :
+        if callable(s.overwrite) :
+          contextFactory.section = s
+          self.lines[s.begin_line:s.end_line] = s.overwrite(
+            lines[s.ori_begin_line:s.ori_end_line],
+            self.lines[s.begin_line:s.end_line],
+            ctx
+          )
+        elif s.overwrite != True : # Could be None
           self.lines[s.begin_line:s.end_line] = lines[s.ori_begin_line:s.ori_end_line]
     else:
       # Merge placeholders and sections
@@ -337,18 +403,26 @@ class OutStream(object):
         pl = pldict.get(s.placeholder)
         if pl is not None :
           pl.sections.append(s)
+          
       # Replace sections in original file with template ones except if overwrite False (in this case, only add at placeholder if not present)
-      
       for e in reversed(sections) :
         if isinstance(e, self.Section) :
           s = e
-          if s.overwrite :
+          if callable(s.overwrite) :
+            contextFactory.section = s
+            lines[s.ori_begin_line:s.ori_end_line] = s.overwrite(
+              lines[s.ori_begin_line:s.ori_end_line],
+              self.lines[s.begin_line:s.end_line],
+              ctx
+            )
+          elif s.overwrite != False : # Could be None
             lines[s.ori_begin_line:s.ori_end_line] = self.lines[s.begin_line:s.end_line]
         elif isinstance(e, self.Placeholder) :
           pl = e
           lines[pl.ori_begin_line:pl.ori_begin_line] = sum(( self.lines[s.begin_line:s.end_line] for s in pl.sections ), [])
       # Assign original file lines
       self.lines = lines
+  
   def close(self):
     self.lines.clear()
     self.sections.clear()
@@ -507,7 +581,9 @@ class Backend(object):
     if ask_help :
       raise PluginError(help)
     conf = g.get('conf')
-    plugin = g.get('plugin')
+    plugin = g.get('plugin', None)
+    if plugin is None :
+      plugin = g.get('_p')
     return conf, plugin, help
 
   def parseConf(self, conf):
@@ -645,7 +721,7 @@ class Backend(object):
         if is_opt :
           return _locals
         else:
-          tmp_out_f.end(out_p, _locals.get('use_sections'), _locals.get('keep_only_sections', True))
+          tmp_out_f.end(out_p, _locals.get('use_sections'), _locals.get('keep_only_sections', False))
       out_p.parent.mkdir(parents=True, exist_ok=True)
       if out_f :
         out_f.write(tmp_out_f.getvalue())
