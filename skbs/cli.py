@@ -78,16 +78,16 @@ def installDefaults(symlink):
 @main.command(name='install')
 @click.option('--symlink', '-s', is_flag=True)
 @click.option('--name', '-n', type=str, default=None, required=False)
-@click.argument('src-directory', type=click.Path())
+@click.argument('src', type=click.Path())
 @ensureB
-def install(src_directory, name, symlink):
+def install(src, name, symlink):
   """
   Install a new template.
   """
-  src_directory = Path(src_directory)
+  src = Path(src)
   if name is None :
-    name = src_directory.name
-  f = B.installTemplate(name, src_directory, symlink)
+    name = src.name
+  f = B.installTemplate(name, src, symlink)
   click.echo(f'{name} template installed at {f}')
   
 @main.command(name='uninstall')

@@ -528,8 +528,14 @@ class Backend(object):
       dest.parent.mkdir(parents=True, exist_ok=True)
       dest.symlink_to(src.absolute())
     else :
-      from distutils.dir_util import copy_tree
-      copy_tree(str(src), str(dest))
+      if src.is_dir():
+        from distutils.dir_util import copy_tree
+        copy_tree(str(src), str(dest))
+      else :
+        from shutil import copy
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        copy(src, dest)
+        
     return dest
   
   def uninstallTemplate(self, name):
