@@ -625,7 +625,7 @@ class Backend(object):
     """
     if template[0] == '@' :
       p = self.config.template_dir/'templates'/template[1:]
-      if not p.is_dir() :
+      if not p.exists() :
         p = self.config.template_dir/'default/templates'/template[1:]
     else:
       p = Path(template)
