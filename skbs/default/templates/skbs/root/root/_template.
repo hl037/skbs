@@ -1,2 +1,2 @@
- ## if _p.sft:
- ##   exclude()
+if _p.sft:
+  exclude()

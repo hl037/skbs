@@ -31,7 +31,7 @@ def ensureB(f):
   
 
 @click.group()
-@click.option('--config', '-c', type=click.Path(), default=configutils.default_config, help='Overide the default configuration path')
+@click.option('--config', '-c', type=click.Path(), default=configutils.default_config, help='Override the default configuration path')
 def main(config):
   global config_path
   global B
@@ -66,7 +66,7 @@ def config_path():
 
 
 @main.command(name='install-defaults')
-@click.option('--symlink', is_flag=True)
+@click.option('--symlink', '-s', is_flag=True)
 @ensureB
 def installDefaults(symlink):
   """
@@ -76,7 +76,7 @@ def installDefaults(symlink):
   click.echo(f'Default templates installed at {f}')
 
 @main.command(name='install')
-@click.option('--symlink', is_flag=True)
+@click.option('--symlink', '-s', is_flag=True)
 @click.option('--name', '-n', type=str, default=None, required=False)
 @click.argument('src-directory', type=click.Path())
 @ensureB
@@ -155,14 +155,13 @@ def gen(ctx, debug, template, dest, stdout, single_file, args):
     template_path = B.findTemplate(template, single_file_authorized=single_file or stdout)
     out_f = None
     if stdout :
-      import sys
       out_f = sys.stdout
     res, help = B.execTemplate(template_path, dest, args, out_f)
     if not res :
       click.echo(help)
   except:
     if debug :
-      import pdb; pdb.xpm()
+      import pdb; pdb.post_mortem(sys.exc_info()[2])
     raise
 
 def bind_skip_after_double_dash_parse_args(cmd):
@@ -184,7 +183,7 @@ def bind_skip_after_double_dash_parse_args(cmd):
 try:
   bind_skip_after_double_dash_parse_args(gen)
 except:
-  import pdb; pdb.xpm()
+  import pdb; pdb.post_mortem(sys.exc_info()[2])
   raise
 
 

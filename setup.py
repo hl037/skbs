@@ -21,7 +21,7 @@ EXTRAS = {}
 
 setup(
     name='skbs',
-    version='2.2.0',
+    version='2.2.1',
     description='SKeleton BootStrap, a full-powered yet trivial to use and customize template based bootstrap or code generation tool',
     long_description=LONG_DESC,
     long_description_content_type='text/markdown',
@@ -41,7 +41,18 @@ setup(
         'skbs=skbs.cli:main',
       ]
     },
-    classifiers=[],
+    classifiers=[
+        'Development Status :: 6 - Mature',
+        'Environment :: Console',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+        'Operating System :: OS Independent',
+        'Programming Language :: Other Scripting Engines',
+        'Programming Language :: Python :: 3',
+        'Topic :: Software Development :: Code Generators',
+        'Topic :: Text Processing',
+        'Topic :: Utilities',
+    ],
     **EXTRAS
 )
 

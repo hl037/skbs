@@ -455,7 +455,10 @@ def tempinyFromLine(l):
 def tempinyFromIterable(iterable):
   # New version support template file describing themselves their syntax...
   it = iter(iterable)
-  first_line = next(it)
+  try :
+    first_line = next(it)
+  except :
+    return None, tuple()
   new_it = chain((first_line,), it)
   return tempinyFromLine(first_line), new_it
 
@@ -565,7 +568,7 @@ class Backend(object):
       inside_skbs_plugin=True,
       Tempiny=Tempiny,
       invokeTemplate=invokeTemplate,
-      dest=dest if not ask_help else None,
+      dest=Path(dest) if not ask_help else None,
       parseCmd=OptionParser(args, plugin),
     )
     if path.is_file() :
@@ -757,7 +760,8 @@ class Backend(object):
   def execSingleFileTemplate(self, template_path : Path, dest : str, args:list[str], out_f=None, plugin = C()):
     ask_help = (dest == '@help') or (args and args[0] == '--help')
     if dest == '@' :
-      dest_name = None
+      dest = Path(template_path.name)
+      dest_name = dest
       dest_parent = Path()
     else:
       dest = Path(dest)
