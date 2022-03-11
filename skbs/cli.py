@@ -4,17 +4,90 @@ import sys
 import traceback
 import click
 import pkg_resources
+import typing as t
 from functools import wraps
+from itertools import chain
 
 from pathlib import Path
 
 from . import configutils
 from .backend import Backend, findTemplates
 
+"""
+Résolution algorithm :
+
+Command names are split by dash, and a prefix tree is constructed in alias.
+A tree is a list of tuple tuple ("name", sub_tree, cmd, i) where subtree is a tree, cmd is the command at this node, and i = 0, used later.
+
+Search for exact match with full command name. If found, return the command
+nodes = [aliases]
+for i in range(len(cmd_name)):
+  nodes = [ a for n, sub, cmd, j in nodes if cmd_name[i] == n[j] for a in chain(((n, sub, cmd, j+1),), sub) ]
+if len(nodes) == 0 :
+  return None
+else:
+  return nodes[1]
+"""
+
 def common_opts(*F):
   def composed(a):
     return reduce(lambda x, f: f(x), reversed(F), a)
   return composed
+
+def _tree_nodes(t, fullname=None, level=-1):
+  if fullname is None :
+    return ( (name, *val, 0, name, level+1) for name, val in t.items() )
+  return ( (name, *val, 0, f'{fullname}-{name}', level+1) for name, val in t.items() )
+
+class AliasedGroup(click.Group):
+  AliasTree = dict[str, ('AliasedGroup.AliasTree', click.Command | None)]
+
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self.aliases = {} # type: AliasedGroup.AliasTree
+
+  def add_command(self, cmd: click.Command, name: t.Optional[str] = None) -> None:
+    name = name or cmd.name
+    rv = super().add_command(cmd, name)
+    node = self.aliases 
+    subs = name.split('-')
+    for sub in subs[:-1]:
+      node, *_ = node.setdefault(sub, ({}, None))
+    sub, c = node.setdefault(subs[-1], ({}, cmd))
+    if c is not cmd :
+      node[subs[-1]] = (sub, cmd)
+    return rv
+
+  def get_command(self, ctx, cmd_name):
+    rv = super().get_command(ctx, cmd_name)
+    if rv is not None:
+      return rv
+    nodes = list(_tree_nodes(self.aliases))
+    for l in cmd_name:
+      nodes = [ a for n, sub, cmd, i, fn, level in nodes if l == n[i] for a in chain(((n, sub, cmd, i+1, fn, level),), _tree_nodes(sub, fn, level)) ]
+    
+    matches = [ (cmd, fn, level) for _, _, cmd, i, fn, level in nodes if i > 0 ]
+    if len(matches) != 0 :
+      m = max( level for _, _, level in matches)
+      matches = [ (cmd, fn) for cmd, fn, level in matches if level == m ]
+      if len(matches) != 1 :
+        ctx.fail(f"Ambiguous command name : {' '.join(sorted(fn for _, fn in matches))}")
+      return matches[0][0]
+
+    unmatches = [ (cmd, fn, level) for _, _, cmd, i, fn, level in nodes if i == 0 ]
+    if len(matches) != 0 :
+      m = max( level for _, _, level in unmatches)
+      matches = [ (cmd, fn) for cmd, fn, level in unmatches if level == m ]
+      if len(matches) != 1 :
+        ctx.fail(f"Ambiguous command name : {' '.join(sorted(fn for _, fn in matches))}")
+      return matches[0][0]
+        
+    ctx.fail(f"Ambiguous command name : {' '.join(sorted(fn for *_, fn in nodes))}")
+
+  def resolve_command(self, ctx, args):
+    # always return the full command name
+    _, cmd, args = super().resolve_command(ctx, args)
+    return cmd.name, cmd, args
 
 config_path = None
 B = None
@@ -30,7 +103,7 @@ def ensureB(f):
 
   
 
-@click.group()
+@click.command(cls=AliasedGroup)
 @click.option('--config', '-c', type=click.Path(), default=configutils.default_config, help='Override the default configuration path')
 def main(config):
   global config_path
