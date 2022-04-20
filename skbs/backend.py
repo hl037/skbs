@@ -437,7 +437,7 @@ def isTemplate(p: Path, sft=False):
   if p.is_dir() :
     return (p / 'root').exists()
   elif sft :
-    return True
+    return p.exists()
   try :
     with open(p, 'r') as f :
       l = f.readline()
@@ -447,24 +447,29 @@ def isTemplate(p: Path, sft=False):
     pass
   return False
 
-def _findTemplates(d: Path, root: Path, rec=True):
+def _findTemplates(d: Path, root: Path, rec=True, dirs=False, sft=False) -> str:
   now = []
   after = []
-  for c in (root / d).iterdir() :
-    if isTemplate(root / c) :
-      now.append(c.relative_to(root))
-    elif (root / c).is_dir() :
-      after.append(c.relative_to(root))
+  try :
+    for c in (root / d).iterdir() :
+      if isTemplate(c, sft) :
+        now.append(str(c.relative_to(root)))
+      elif (c).is_dir() :
+        after.append(c.relative_to(root))
+  except :
+    pass
   yield from sorted(now)
   if rec :
     for c in sorted(after) :
       yield from _findTemplates(c, root, rec)
+  if dirs :
+    yield from ( f'{p}/' for p in after )
 
-def findTemplates(d: Path, root: Path, rec=True):
-  if isTemplate(root / d) :
-    yield d
+def findTemplates(d: Path, root: Path, rec=True, dirs=False, sft=False) -> str:
+  if isTemplate(root / d, sft) :
+    yield str(d)
   else :
-    yield from _findTemplates(d, root, rec)
+    yield from _findTemplates(d, root, rec, dirs, sft)
   
       
 tempinySyntaxRegex = re.compile(r'^(\s*\S+)\s+\#\s+(\S+)__skbs_template__(\S+)\s*$')
@@ -521,17 +526,19 @@ class Backend(object):
       list(findTemplates(Path(), user_templates)) if user_templates.is_dir() else []
     )
 
-  def findTemplates(self, path:str|Path, root:str|Path, rec=True):
-    if isinstance(root, str) :
-      if root[0] == '@' :
-        roots = [self.default_templates, self.user_templates]
-      else :
-        roots = [Path(root)]
+  def findTemplates(self, path:str|Path, root:str|Path, rec=True, dirs=False, sft=False):
+    root = str(root)
+    if not root :
+      yield from (f'@{p}' for p in findTemplates(Path(), self.default_templates, rec, dirs, True))
+      yield from (f'@{p}' for p in findTemplates(Path(), self.user_templates, rec, dirs, True))
+      yield from findTemplates(Path(), Path(), rec, dirs, sft)
+      return
+    elif root[0] == '@' :
+      yield from (f'@{p}' for p in findTemplates(Path(root[1:]), self.default_templates, rec, dirs, True))
+      yield from (f'@{p}' for p in findTemplates(Path(root[1:]), self.user_templates, rec, dirs, True))
+      return
     else :
-      roots = [root]
-    p = Path(path)
-    for r in roots :
-      yield from findTemplates(p, r, rec)
+      yield from findTemplates(Path(), Path(root), rec, dirs, sft)
 
   @property
   def default_templates(self):

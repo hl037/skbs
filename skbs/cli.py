@@ -3,6 +3,7 @@ import os
 import sys
 import traceback
 import click
+import click.shell_completion
 import pkg_resources
 import typing as t
 from functools import wraps
@@ -89,6 +90,51 @@ class AliasedGroup(click.Group):
     _, cmd, args = super().resolve_command(ctx, args)
     return cmd.name, cmd, args
 
+def _createBackend(ctx: click.Context):
+  global B
+  while ctx is not None :
+    if ctx.command is main :
+      ctx.invoke(main)
+      break
+    ctx = ctx.parent
+  if B is None :
+    B = configutils.getBackend(None)
+    
+
+class TemplatePath(click.types.Path):
+  """
+  A click type to provide auto completion for templates
+  """
+
+  def shell_complete(
+    self, ctx: click.Context, param: click.Parameter, incomplete: str
+  ) -> t.List[click.shell_completion.CompletionItem]:
+    _createBackend(ctx)
+    CompletionItem = click.shell_completion.CompletionItem
+    root_parts = incomplete.split('/')
+    root = '/'.join(root_parts[:-1])
+    candidates = B.findTemplates(Path(), root, rec=False, dirs=True)
+    if root :
+      root = root + '/'
+    return [
+      CompletionItem(f'{root}{p}')
+      for _p in candidates if (p := str(_p)).startswith(root_parts[-1])
+    ]
+
+DestPath = click.types.Path
+
+# class DestPath(click.types.Path):
+#   """
+#   A click type to add '@help' to the default Path type
+#   """
+#   def shell_complete(
+#     self, ctx: click.Context, param: click.Parameter, incomplete: str
+#   ) -> t.List[click.shell_completion.CompletionItem]:
+#     return super().shell_complete(ctx, param, incomplete) + [
+#       click.shell_completion.CompletionItem(incomplete),
+#       click.shell_completion.CompletionItem('@help')
+#     ]
+#     
 
 config_path = None
 B = None
@@ -207,8 +253,8 @@ def listTemplates(paths):
 
 @main.command(name='gen')
 @click.option('--debug', '-g', is_flag=True)
-@click.argument('template', type=click.Path())
-@click.argument('dest', type=str)
+@click.argument('template', type=TemplatePath())
+@click.argument('dest', type=DestPath())
 @click.option('--stdout', is_flag=True, help='Only for single file templates : output to stdout. --single-file is implied')
 @click.option('--single-file', '-s', is_flag=True, help='Authorize single file template for non installed templates.')
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
