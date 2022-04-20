@@ -121,7 +121,7 @@ This syntax can be changed by modifying the header line as described in the Tuto
 
 To create a multi-file template :
 ```
-skbs gen skbs my_second_template -- -c
+skbs gen @skbs my_second_template -- -c
 ```
 
 Where `my_second_template` is the name of the template.

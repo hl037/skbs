@@ -433,16 +433,39 @@ It can also be to a callable object with this signature : ``overwrite(original: 
 def extractHelpFromLocals(loc):
   return next(( h for k in ('__doc__', 'help') if (h := loc.get(k)) ), 'No help provided for this template' ) 
   
+def isTemplate(p: Path, sft=False):
+  if p.is_dir() :
+    return (p / 'root').exists()
+  elif sft :
+    return True
+  try :
+    with open(p, 'r') as f :
+      l = f.readline()
+    if tempinySyntaxRegex.match(l) :
+      return True
+  except :
+    pass
+  return False
 
-def findTemplates(d: Path, root: Path):
-  if (d / 'root').exists() :
-    yield d.relative_to(root)
+def _findTemplates(d: Path, root: Path, rec=True):
+  now = []
+  after = []
+  for c in (root / d).iterdir() :
+    if isTemplate(root / c) :
+      now.append(c.relative_to(root))
+    elif (root / c).is_dir() :
+      after.append(c.relative_to(root))
+  yield from sorted(now)
+  if rec :
+    for c in sorted(after) :
+      yield from _findTemplates(c, root, rec)
+
+def findTemplates(d: Path, root: Path, rec=True):
+  if isTemplate(root / d) :
+    yield d
   else :
-    for c in d.iterdir() :
-      if c.is_dir() :
-        yield from findTemplates(c, root)
-      else :
-        yield c.relative_to(root)
+    yield from _findTemplates(d, root, rec)
+  
       
 tempinySyntaxRegex = re.compile(r'^(\s*\S+)\s+\#\s+(\S+)__skbs_template__(\S+)\s*$')
 
@@ -491,15 +514,36 @@ class Backend(object):
     List installed templates
     @return List[default_templates],List[templates]
     """
-    default_dir = self.config.template_dir/'default/templates'
-    user_dir = self.config.template_dir/'templates'
+    default_templates = self.default_templates
+    user_templates = self.user_templates
     return (
-      list(findTemplates(default_dir, default_dir)) if default_dir.is_dir() else [],
-      list(findTemplates(user_dir, user_dir)) if user_dir.is_dir() else []
+      list(findTemplates(Path(), default_templates)) if default_templates.is_dir() else [],
+      list(findTemplates(Path(), user_templates)) if user_templates.is_dir() else []
     )
 
+  def findTemplates(self, path:str|Path, root:str|Path, rec=True):
+    if isinstance(root, str) :
+      if root[0] == '@' :
+        roots = [self.default_templates, self.user_templates]
+      else :
+        roots = [Path(root)]
+    else :
+      roots = [root]
+    p = Path(path)
+    for r in roots :
+      yield from findTemplates(p, r, rec)
+
+  @property
+  def default_templates(self):
+    return self.config.template_dir / 'default/templates'
+
+  @property
+  def user_templates(self):
+    return self.config.template_dir / 'templates'
+
+
   def installDefaultTemplates(self, symlink=False):
-    dest = str(self.config.template_dir/'default/templates/') + '/'
+    dest = str(self.default_templates) + '/'
     src = pkg_resources.resource_filename(APP, 'default/templates/')
     if src != dest :
       dest_p = Path(dest)
@@ -521,7 +565,7 @@ class Backend(object):
     return dest
 
   def installTemplate(self, name, src, symlink=False):
-    dest = self.config.template_dir / 'templates' / name
+    dest = self.user_templates / name
     if dest.exists() :
       self.uninstallTemplate(name)
     if symlink :
@@ -539,7 +583,7 @@ class Backend(object):
     return dest
   
   def uninstallTemplate(self, name):
-    dest = self.config.template_dir / 'templates' / name
+    dest = self.user_templates / name
     if dest.is_symlink() :
       dest.unlink()
     else :
@@ -619,14 +663,14 @@ class Backend(object):
   def findTemplate(self, template, single_file_authorized=False):
     """
     Find `template`. If `template` starts with a '@', then search in globally installed template.
-    Else, if the path exists and point to a directoryn, return this directory.
+    Else, if the path exists and point to a directory, return this directory.
 
     @return Path object to template root
     """
     if template[0] == '@' :
-      p = self.config.template_dir/'templates'/template[1:]
+      p = self.user_templates/template[1:]
       if not p.exists() :
-        p = self.config.template_dir/'default/templates'/template[1:]
+        p = self.default_templates/template[1:]
     else:
       p = Path(template)
     if single_file_authorized and p.is_file() :

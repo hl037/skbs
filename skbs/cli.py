@@ -89,6 +89,7 @@ class AliasedGroup(click.Group):
     _, cmd, args = super().resolve_command(ctx, args)
     return cmd.name, cmd, args
 
+
 config_path = None
 B = None
 
@@ -194,8 +195,8 @@ def listTemplates(paths):
     se('\n')
 
   else:
-    for p in map(Path, paths) :
-      templates = findTemplates(p, p)
+    for p in paths :
+      templates = B.findTemplates(Path(), p)
       se('\n')
       se(f'Templates found in {p} :', fg='cyan', nl=False)
       se('\n  ', nl=False)
