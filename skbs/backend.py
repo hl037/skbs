@@ -818,15 +818,19 @@ class Backend(object):
     ask_help = (dest == '@help') or (args and args[0] == '--help')
     if dest == '@' :
       dest = Path(template_path.name)
-      dest_name = dest
+      out_p = dest
       dest_parent = Path()
     else:
       dest = Path(dest)
-      dest_name = Path(dest.name)
+      out_p = Path(dest.name)
       dest_parent = dest.parent
 
     # Template as file
     if template_path.is_file() :
+      if dest.is_dir() : # TODO: test it properly
+        dest_parent = dest
+        dest = dest / template_path.name # if the dest is a directory, then we should use the same name as the template file...
+        out_p = Path(dest.name)
       import re
       with open(template_path, 'r') as f :
         l = next(f)
@@ -864,7 +868,7 @@ class Backend(object):
       )
       
       try:
-        _locals = self.processFile(template_path, dest_name, False, True, base_locals, tempiny_l, dest_parent, out_f=out_f)
+        _locals = self.processFile(template_path, out_p, False, True, base_locals, tempiny_l, dest_parent, out_f=out_f)
       except PluginError as err:
         return False, err.help
       return True, _locals.get('help')
@@ -891,7 +895,7 @@ class Backend(object):
       )
       base_locals.include = Include([template_path / '__include'], tempiny_l, base_locals, file_name_parser)
       
-      self.processFile(template_path/'root', dest_name, False, True, base_locals, tempiny_l, dest_parent, out_f=out_f)
+      self.processFile(template_path/'root', out_p, False, True, base_locals, tempiny_l, dest_parent, out_f=out_f)
       return True, help
     
   
