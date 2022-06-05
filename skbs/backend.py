@@ -20,8 +20,6 @@ from .pluginutils import Config as C, EndOfPlugin, PluginError, ExcludeFile, exc
 
 import click
 
-
-
 sys.excepthook = print_exc
 
 APP = 'skbs'
@@ -461,7 +459,7 @@ def _findTemplates(d: Path, root: Path, rec=True, dirs=False, sft=False) -> str:
   yield from sorted(now)
   if rec :
     for c in sorted(after) :
-      yield from _findTemplates(c, root, rec)
+      yield from _findTemplates(c, root, rec, dirs, sft)
   if dirs :
     yield from ( f'{p}/' for p in after )
 
@@ -522,8 +520,8 @@ class Backend(object):
     default_templates = self.default_templates
     user_templates = self.user_templates
     return (
-      list(findTemplates(Path(), default_templates)) if default_templates.is_dir() else [],
-      list(findTemplates(Path(), user_templates)) if user_templates.is_dir() else []
+      list(findTemplates(Path(), default_templates, sft=True)) if default_templates.is_dir() else [],
+      list(findTemplates(Path(), user_templates, sft=True)) if user_templates.is_dir() else []
     )
 
   def findTemplates(self, path:str|Path, root:str|Path, rec=True, dirs=False, sft=False):
