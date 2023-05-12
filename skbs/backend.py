@@ -14,6 +14,10 @@ from contextlib import contextmanager
 from functools import wraps
 from itertools import accumulate, chain
 from traceback import print_exc
+from importlib.machinery import ModuleSpec, SourceFileLoader
+from importlib.util import module_from_spec, spec_from_loader
+from importlib import import_module
+from types import ModuleType
 
 from tempiny import Tempiny
 from .pluginutils import Config as C, EndOfPlugin, PluginError, ExcludeFile, exclude, pluginError, EndOfTemplate, endOfTemplate, invokeCmd, OptionParser
@@ -596,15 +600,28 @@ class Backend(object):
       remove_tree(str(dest))
     return dest
 
-  def createDummyPluginModule(self, path, g):
-    path = path.parent
-    g.__package__ = '__skbs_plugin__' + str(path).replace('/', '_').replace('.','_')
-    m = C(
-      __name__ = g.__package__,
-      __path__ = [str(path)],
-      __package__ = '',
-    )
-    sys.modules[g.__package__] = m
+  def createPluginModule(self, path, g):
+    """
+    Create the module for the plugin, then execute it. `path` should be the path to the parent directory.
+    """
+    # Create a package to be able to import other modules from the plugin.
+    # TODO: replace all non authorized characters be _
+    package_name = '__skbs_plugin__' + str(path).replace('/', '_').replace('.','_').replace('-', '_')
+    package_spec = ModuleSpec(package_name, None, origin=str(path))
+    package_spec.submodule_search_locations = [str(path)]
+    package_module = module_from_spec(package_spec)
+    sys.modules[package_name] = package_module
+
+    # Create the true plugin module
+    name = f'{package_name}.plugin'
+    loader = SourceFileLoader(name, str(path / 'plugin.py'))
+    spec = spec_from_loader(name, loader)
+    module = module_from_spec(spec)
+    sys.modules[name] = module
+    module.__dict__.update(g)
+
+    loader.exec_module(module)
+    return module.__dict__
 
   def parsePlugin(self, path, args, dest, ask_help):
     tempiny = None
@@ -628,11 +645,8 @@ class Backend(object):
     )
     if path.is_file() :
       # source plugin.py if one
-      with path.open('r') as f :
-        obj = compile(f.read(), path, 'exec')
-      self.createDummyPluginModule(path, g)
       try:
-        exec(obj, g.asDict(), g)
+        g.update(self.createPluginModule(path.parent, g))
       except EndOfPlugin:
         pass
     help = extractHelpFromLocals(g)
