@@ -14,10 +14,11 @@
  ## @click.option('--src', '-i', type=str, default=None, help='The source file for the content of the sft')
  ## @click.option('--syn', '-y', type=(str,str,str), help="Tempiny synthax : stmt_line_start begin_expr end_expr", default=None)
  ## def main(**kwargs):
- ##   syn = kwargs['syn']
+ ##   syn = kwargs.pop('syn')
  ##   src = kwargs['src']
  ##   _p.update(kwargs)
  ##   _p.dest = dest
+ ##   _p.syn = None
  ##   if (
  ##     (src and (src := Path(src)).is_file()) or
  ##     (src := dest).is_file()
@@ -31,7 +32,7 @@
  ##       if syn is None :
  ##         syn = dict(stmt_line_start=m[1], begin_expr=m[2], end_expr=m[3])
  ##       -
- ##       _p.syn = syn
+ ##       _p.syn = dict(stmt_line_start=syn[0], begin_expr=syn[1], end_expr=syn[2])
  ##     -
  ##     _p.content = ''.join(l)
  ##   -
