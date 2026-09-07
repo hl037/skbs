@@ -4,8 +4,6 @@ import pytest
 from pytest_datadir_ng import datadir, datadir_copy
 from pathlib import Path
 
-from dbug import *
-
 def assertDirsEqual(d1, d2):
   cmp = filecmp.dircmp(d1, d2)
   assert cmp.right_only == []
@@ -233,7 +231,6 @@ def test_empty_dirs(simpleBackend, tmp_path, datadir):
     'moved/moved',
   ]
   for d in dirs :
-    Dvar(r"""d, r/d""")
     (r/d).mkdir(parents=True, exist_ok=True)
   B.execTemplate(t, str(tmp_path/'o'), [42, 43])
   assertDirsEqual(r, tmp_path/'o')
