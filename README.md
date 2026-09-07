@@ -1,10 +1,25 @@
 # Welcome to SKBS
 
-SKBS means SKeleton BootStrap.
+![PyPI](https://img.shields.io/pypi/v/skbs)
+![Python versions](https://img.shields.io/pypi/pyversions/skbs)
+![License](https://img.shields.io/badge/license-GPLv3-blue)
 
-SKBS is a powerful template engine, that can be used on a wide range of tasks, from project boilerplate bootstrap to Code generation.
+SKBS means SKeleton BootStrap: templates are just plain Python — no new language to learn.
 
-Thanks to Tempiny, skbs provides a template syntax that is just Python code, avoiding the need for learning yet another language.
+```
+$ cat greeting.txt
+## # {{__skbs_template__}}
+## for name in ('Alice', 'Bob'):
+Hello {{name}}!
+## -
+
+$ skbs gen greeting.txt out.txt --
+$ cat out.txt
+Hello Alice!
+Hello Bob!
+```
+
+Loops, conditions, functions, imports — all of Python, right in your template. And since the syntax is self-declared on the first line, you can adapt it to whatever language you're generating: use `%#`/`<<`/`>>` for LaTeX, `//#` for C, or your own — see the Tutorial.
 
 Moreover, contrary to other template language, it is possible to change the delimiters to avoid the need for escaping.
 
@@ -17,11 +32,33 @@ Moreover, contrary to other template language, it is possible to change the deli
   * In-template Click integration to provide quickly user-friendly CLI-like options 
   * Heavily tested with `pytest`
 
+# Regenerate without losing your edits
+
+Most template tools are one-shot: run once, then you're on your own. SKBS can treat a file as already generated: mark the auto-generated parts as "sections", and later runs only touch those — hand-written content elsewhere in the file is left completely alone.
+
+```
+## # {{__skbs_template__}}
+Header (auto-generated, do not edit)
+## beginSection(overwrite=False)
+--- BEGIN CUSTOM ---
+--- END CUSTOM ---
+## endSection()
+Footer
+```
+
+Generate it once, hand-edit the content between `BEGIN CUSTOM`/`END CUSTOM`, then run `skbs gen` again on the same destination: your edit survives, because `overwrite=False` tells SKBS to keep what's already in the file for that section.
+
+# Why not Cookiecutter / Copier / Yeoman?
+
+  * **Cookiecutter / Copier** use Jinja2: a templating *language* with its own limited logic (loops, conditionals, filters). SKBS templates are plain Python: no sandbox, no missing feature — if Python can do it, so can your template.
+  * **Yeoman** generators are npm packages you write in JS and publish/install like any package. SKBS templates are just files: write one, `skbs install --symlink` it, done — no packaging step, no separate ecosystem to learn.
+  * None of the above let you re-run a template over a file you've since hand-edited without clobbering your changes — see "Regenerate without losing your edits" above.
+
 # Install
 
 `pip` is the preferred way. Then you should generate the configuration (simply where the template are installed...)
 
-By default, the config in installed at the default location  for user configs (`~/.local/config/skbs/` for unix-like)
+By default, the config is installed at the default location for user configs (`~/.config/skbs/` for unix-like)
 
 ```
 pip install skbs
@@ -38,7 +75,7 @@ I recommend you to read the Tutorial ( https://github.com/hl037/skbs/wiki/Tutori
 Usage: skbs [OPTIONS] COMMAND [ARGS]...
 
 Options:
-  -c, --config PATH  Overide the default configuration path
+  -c, --config PATH  Override the default configuration path
   --help             Show this message and exit.
 
 Commands:
@@ -48,7 +85,7 @@ Commands:
   install           Install a new template.
   install-defaults  Install default provided templates
   list              List installed templates.
-  uninstall         Uninstall a template uninstall         Uninstall a template
+  uninstall         Uninstall a template
 ```
 
 Usage of `skbs gen`
@@ -82,7 +119,7 @@ You may also find the API_Reference ( https://github.com/hl037/skbs/wiki/API_Ref
 
 Install the default-provided templates :
 ```
-skbs install-default
+skbs install-defaults
 ```
 
 To request a template's help, use `@help` as destination (or pass `--help` as first template argument, after the `--`:

@@ -74,6 +74,32 @@ def test_uninstallTemplate_symlink(freshBackend, datadir):
   target_templates = tmp_path / 'templates/t1'
   assert not target_templates.exists()
   
+def test_installTemplate_singleFile(freshBackend, tmp_path):
+  B, config_dir = freshBackend
+  src = tmp_path / 'src.txt'
+  src.write_text('hello')
+  B.installTemplate('src.txt', src, False)
+  target = config_dir / 'templates/src.txt'
+  assertFilesEqual(target, src)
+
+def test_uninstallTemplate_singleFile(freshBackend, tmp_path):
+  B, config_dir = freshBackend
+  src = tmp_path / 'src.txt'
+  src.write_text('hello')
+  B.installTemplate('src.txt', src, False)
+  B.uninstallTemplate('src.txt')
+  target = config_dir / 'templates/src.txt'
+  assert not target.exists()
+
+def test_installTemplate_singleFile_reinstallAsSymlink(freshBackend, tmp_path):
+  B, config_dir = freshBackend
+  src = tmp_path / 'src.txt'
+  src.write_text('hello')
+  B.installTemplate('src.txt', src, False)
+  B.installTemplate('src.txt', src, True)
+  target = config_dir / 'templates/src.txt'
+  assert target.is_symlink()
+
 def test_installTemplate_over(freshBackend, datadir):
   B, tmp_path = freshBackend
   t1 = Path(datadir['t1'])

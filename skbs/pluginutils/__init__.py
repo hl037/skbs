@@ -5,6 +5,15 @@ from click.exceptions import Exit, Abort, ClickException
 from contextlib import contextmanager
 from .._internal_click_monkey_patches import CliError
 
+# EndOfPlugin, EndOfTemplate, ExcludeFile and PluginError are skbs's internal
+# control-flow signals (used in place of `return`/`continue` across the
+# plugin.py / per-file template boundary, see backend.py). Template authors
+# aren't meant to catch or raise these classes directly in general: the
+# public surface is the exclude()/endOfTemplate()/pluginError() functions
+# below. The exception: EndOfPlugin and PluginError are also handed directly
+# to plugin.py's namespace (see Backend.parsePlugin) so that
+# `raise EndOfPlugin()` / `raise PluginError(help)` work there too — kept for
+# backward compatibility with existing templates (e.g. the default one).
 class EndOfPlugin(Exception):
   pass
 
@@ -38,6 +47,13 @@ def endOfTemplate():
 
 def endOfPlugin():
   raise EndOfPlugin()
+
+def extractHelpFromLocals(loc):
+  """
+  Used by both plugin loading and per-file template processing to recover
+  the help message a plugin/template exposed (via `__doc__` or `help`).
+  """
+  return next(( h for k in ('__doc__', 'help') if (h := loc.get(k)) ), 'No help provided for this template' )
 
 
 __ctx = None
@@ -85,6 +101,12 @@ class OptionParser(object):
 class _Default:
   pass
 class Config(object):
+  """
+  Dict-like, attribute-accessible bag of values (`C(x=1).x == 1`), aliased
+  as `C` throughout skbs. Used both for the fixed, framework-injected
+  namespace of plugin.py/per-file templates, and as the free-form `plugin`/
+  `_p` object template authors extend with arbitrary attributes.
+  """
   def __init__(self, **kwargs):
     self.__dict__['__d__'] = kwargs
   def keys(self):
