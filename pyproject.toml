@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "skbs"
+version = "2.2.1"
+description = "SKeleton BootStrap, a full-powered yet trivial to use and customize template based bootstrap or code generation tool"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "GPLv3" }
+authors = [
+  { name = "Léo Flaventin Hauchecorne", email = "hl037.prog@gmail.com" },
+]
+urls = { Homepage = "https://github.com/hl037/skbs" }
+dependencies = [
+  "click>=0.7",
+  "appdirs>=1.4.4",
+  "tempiny>=1.1",
+  "addict",
+]
+classifiers = [
+  "Development Status :: 6 - Mature",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+  "Operating System :: OS Independent",
+  "Programming Language :: Other Scripting Engines",
+  "Programming Language :: Python :: 3",
+  "Topic :: Software Development :: Code Generators",
+  "Topic :: Text Processing",
+  "Topic :: Utilities",
+]
+
+[project.optional-dependencies]
+test = [
+  "pytest>=6.2.2",
+  "pytest_datadir_ng>=1.1.1",
+  "pytest-cov>=2.11.1",
+]
+
+[project.scripts]
+skbs = "skbs.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["skbs*"]
+
+[tool.setuptools]
+include-package-data = true
+zip-safe = false

@@ -4,7 +4,6 @@ import sys
 import traceback
 import click
 import click.shell_completion
-import pkg_resources
 import typing as t
 from functools import wraps
 from itertools import chain

@@ -3,12 +3,12 @@ import io
 import json
 import linecache
 import os
-import pkg_resources
 import re
 import shutil
 import sys
 import time
 import traceback
+from importlib import resources
 from pathlib import Path
 from contextlib import contextmanager
 from functools import wraps
@@ -514,7 +514,7 @@ class Backend(object):
   def createConfig(path):
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(str(path), 'wb') as f :
-      f.write(pkg_resources.resource_string(APP, 'default/conf.py'))
+      f.write(resources.files(APP).joinpath('default/conf.py').read_bytes())
 
   def listTemplates(self):
     """
@@ -553,24 +553,21 @@ class Backend(object):
 
   def installDefaultTemplates(self, symlink=False):
     dest = str(self.default_templates) + '/'
-    src = pkg_resources.resource_filename(APP, 'default/templates/')
+    src = str(resources.files(APP).joinpath('default/templates/'))
     if src != dest :
       dest_p = Path(dest)
       if dest_p.exists() :
         if dest_p.is_symlink():
           dest_p.unlink()
         else:
-          from distutils.dir_util import remove_tree
-          remove_tree(dest)
+          shutil.rmtree(dest)
 
       if symlink :
         dest_p.parent.mkdir(parents=True, exist_ok=True)
         dest_p.symlink_to(src)
       else :
-        from distutils.dir_util import copy_tree
         self.config.template_dir.mkdir(parents=True, exist_ok=True)
-        pkg_resources.set_extraction_path(self.config.template_dir)
-        copy_tree(src, dest)
+        shutil.copytree(src, dest, dirs_exist_ok=True)
     return dest
 
   def installTemplate(self, name, src, symlink=False):
@@ -582,22 +579,19 @@ class Backend(object):
       dest.symlink_to(src.absolute())
     else :
       if src.is_dir():
-        from distutils.dir_util import copy_tree
-        copy_tree(str(src), str(dest))
+        shutil.copytree(str(src), str(dest), dirs_exist_ok=True)
       else :
-        from shutil import copy
         dest.parent.mkdir(parents=True, exist_ok=True)
-        copy(src, dest)
-        
+        shutil.copy(src, dest)
+
     return dest
-  
+
   def uninstallTemplate(self, name):
     dest = self.user_templates / name
     if dest.is_symlink() :
       dest.unlink()
     else :
-      from distutils.dir_util import remove_tree
-      remove_tree(str(dest))
+      shutil.rmtree(str(dest))
     return dest
 
   def createPluginModule(self, path, g):
@@ -620,7 +614,12 @@ class Backend(object):
     sys.modules[name] = module
     module.__dict__.update(g)
 
-    loader.exec_module(module)
+    try:
+      loader.exec_module(module)
+    finally:
+      # Sync back whatever the plugin set before raising (e.g. EndOfPlugin
+      # early-exit after assigning `help`).
+      g.update(module.__dict__)
     return module.__dict__
 
   def parsePlugin(self, path, args, dest, ask_help):
