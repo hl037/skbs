@@ -24,6 +24,26 @@ if ask_help :
 invokeCmd(main, args)
 
  ## -
+ ## elif _p.cyclopts :
+plugin = C()
+
+app = cyclopts.App(help=__doc__)
+@app.default
+def main(**kwargs):
+  plugin.update(kwargs)
+
+import io, contextlib
+_buf = io.StringIO()
+with contextlib.redirect_stdout(_buf):
+  app.help_print([])
+__doc__ = _buf.getvalue()
+
+if ask_help :
+  raise EndOfPlugin()
+
+invokeCmdCyclopts(app, args)
+
+ ## -
  ## else :
 if ask_help :
   raise EndOfPlugin()

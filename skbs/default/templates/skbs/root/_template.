@@ -1,0 +1,7 @@
+ ## # {{__skbs_template__}}
+ ## if _p.sft :
+ ##   if _p.content is not None :
+{{_p.content}}
+ ##   -
+ ##   touch()
+ ## -

@@ -18,36 +18,42 @@ conf = C(
 
 plugin = C()
 
-import click
+from typing import Annotated, Optional
 from pathlib import Path
 from skbs.backend import tempinySyntaxRegex
 import re
 from tempiny import Tempiny
 
-@click.command(help=__doc__)
-@click.option('--click', '-c', is_flag=True, help='Generate click command bootstrap')
-@click.option('--sft', '-s', is_flag=True, help='Generate a single file template')
-@click.option('--src', '-i', type=str, default=None, help='The source file for the content of the single file template')
-def main(src, **kwargs):
-  sft = kwargs['sft']
-  plugin.update(kwargs)
+app = cyclopts.App(help=__doc__)
+
+@app.default
+def main(
+  src: Annotated[Optional[str], cyclopts.Parameter(name=['--src', '-i'])] = None,
+  use_click: Annotated[bool, cyclopts.Parameter(name=['--click', '-c'])] = False,
+  use_cyclopts: Annotated[bool, cyclopts.Parameter(name=['--cyclopts'])] = False,
+  sft: Annotated[bool, cyclopts.Parameter(name=['--sft', '-s'])] = False,
+):
+  plugin.click = use_click
+  plugin.cyclopts = use_cyclopts
+  plugin.sft = sft
   plugin.dest = dest
   if sft:
     if (
       (src and (src := Path(src)).is_file()) or
       (src := dest).is_file()
     ) :
-      with open(sft_src, 'r') as f :
-        plugin.content = f.readall()
+      with open(src, 'r') as f :
+        plugin.content = f.read()
     else :
       plugin.content = None
 
-with click.Context(main) as ctx:
-  __doc__ = main.get_help(ctx)
+import io, contextlib
+_buf = io.StringIO()
+with contextlib.redirect_stdout(_buf):
+  app.help_print([])
+__doc__ = _buf.getvalue()
 
 if ask_help :
   raise EndOfPlugin()
 
-invokeCmd(main, args)
-
-
+invokeCmdCyclopts(app, args)

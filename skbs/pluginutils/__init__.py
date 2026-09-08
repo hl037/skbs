@@ -1,9 +1,5 @@
 
 import io
-import click
-from click.exceptions import Exit, Abort, ClickException
-from contextlib import contextmanager
-from .._internal_click_monkey_patches import CliError
 
 # EndOfPlugin, EndOfTemplate, ExcludeFile and PluginError are skbs's internal
 # control-flow signals (used in place of `return`/`continue` across the
@@ -36,6 +32,29 @@ class PluginError(Exception):
 def pluginError(help):
   raise PluginError(help)
 
+class _MissingClick:
+  """
+  Stands in for the `click` module in a template's namespace when click
+  isn't installed (it's optional, see pyproject.toml's `click` extra).
+  Any use (`click.command(...)`, `click.Context(...)`, etc.) raises a
+  PluginError with install instructions instead of skbs itself failing to
+  import, or the template failing with a confusing AttributeError/TypeError.
+  """
+  def __getattr__(self, name):
+    def _raise(*args, **kwargs):
+      raise PluginError(
+        'This template uses `click`, which is not installed.\n'
+        'Install it with: pip install skbs[click]'
+      )
+    return _raise
+
+def getClick():
+  try:
+    import click
+    return click
+  except ImportError:
+    return _MissingClick()
+
 class ExcludeFile(Exception):
   pass
 
@@ -56,23 +75,27 @@ def extractHelpFromLocals(loc):
   return next(( h for k in ('__doc__', 'help') if (h := loc.get(k)) ), 'No help provided for this template' )
 
 
-__ctx = None
 __name = '--'
 
 def invokeCmd(cmd, args, **extra):
   """
-  Invoke a click command, so that the usage will be adapted to fit the parent command if one.
+  Invoke a click command. `__name` (settable by the caller, e.g. skbs's own
+  CLI) is used as the command's displayed name, so its usage string can
+  read as if it were nested under the invoking command
+  (e.g. "skbs gen mytemplate dest --") without needing a real click.Context
+  to chain to.
   **extra are passed to cmd.make_context
   """
+  from click.exceptions import Exit, ClickException
   from .._internal_click_monkey_patches import __get_help_option, silentClick
   stderr = io.StringIO()
   with silentClick(stderr):
     try :
-      ctx = cmd.make_context(__name, args, parent = __ctx, **extra)
+      ctx = cmd.make_context(__name, args, **extra)
       cmd.invoke(ctx)
-    except Exit : 
+    except Exit :
       pass
-    except ClickException as exc : 
+    except ClickException as exc :
       exc.show(file=stderr)
     except Exception :
       import pdb; pdb.xpm()
@@ -80,6 +103,23 @@ def invokeCmd(cmd, args, **extra):
   err = stderr.getvalue()
   if err :
     raise PluginError(err)
+
+def invokeCmdCyclopts(app, args):
+  """
+  Invoke a cyclopts.App, capturing its output the same way invokeCmd does
+  for a click.Command: any output (help text, an error, or the command's
+  own prints) becomes a PluginError; silence means success.
+  """
+  import contextlib
+  buf = io.StringIO()
+  with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+    try :
+      app(args)
+    except SystemExit :
+      pass
+  out = buf.getvalue()
+  if out :
+    raise PluginError(out)
 
 class OptionParser(object):
   """
@@ -90,7 +130,7 @@ class OptionParser(object):
     self.opts = opts
 
   def __call__(self, *click_opts):
-    @click.command(name='')
+    @getClick().command(name='')
     def cmd(**kwargs):
       self.opts.update(kwargs)
     for opt in click_opts :

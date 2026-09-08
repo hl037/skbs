@@ -3,20 +3,22 @@
  ## skbs Meta-Template =D
  ## This is the template to generate the base skeleton of a custom skbs template
  ## """
- ## import click
+ ## from typing import Annotated, Optional
  ## from pathlib import Path
  ## from skbs.backend import tempinySyntaxRegex
  ## import re
  ## from tempiny import Tempiny
- ## 
- ## @click.command(help=__doc__)
- ## @click.option('--click', '-c', is_flag=True, help='Generate click command bootstrap')
- ## @click.option('--src', '-i', type=str, default=None, help='The source file for the content of the sft')
- ## @click.option('--syn', '-y', type=(str,str,str), help="Tempiny synthax : stmt_line_start begin_expr end_expr", default=None)
- ## def main(**kwargs):
- ##   syn = kwargs.pop('syn')
- ##   src = kwargs['src']
- ##   _p.update(kwargs)
+ ##
+ ## app = cyclopts.App(help=__doc__)
+ ## @app.default
+ ## def main(
+ ##   use_click: Annotated[bool, cyclopts.Parameter(name=['--click', '-c'])] = False,
+ ##   use_cyclopts: Annotated[bool, cyclopts.Parameter(name=['--cyclopts'])] = False,
+ ##   src: Annotated[Optional[str], cyclopts.Parameter(name=['--src', '-i'])] = None,
+ ##   syn: Annotated[Optional[tuple[str,str,str]], cyclopts.Parameter(name=['--syn', '-y'])] = None,
+ ## ):
+ ##   _p.click = use_click
+ ##   _p.cyclopts = use_cyclopts
  ##   _p.dest = dest
  ##   _p.syn = None
  ##   if (
@@ -46,17 +48,20 @@
  ##   _p.bb = _p.syn['begin_expr']
  ##   _p.ee = _p.syn['end_expr']
  ## -
- ## 
- ## with click.Context(main) as ctx:
- ##   __doc__ = main.get_help(ctx)
+ ##
+ ## import io, contextlib
+ ## _buf = io.StringIO()
+ ## with contextlib.redirect_stdout(_buf):
+ ##   app.help_print([])
  ## -
- ## 
+ ## __doc__ = _buf.getvalue()
+ ##
  ## if ask_help :
  ##   raise EndOfPlugin()
  ## -
- ## 
- ## invokeCmd(main, args)
- ## 
+ ##
+ ## invokeCmdCyclopts(app, args)
+ ##
 {{_p.syn['stmt_line_start']}} # {{_p.syn['begin_expr']}}__skbs_template__{{_p.syn['end_expr']}}
  ## if _p.content is None :
 {{_p.cc}} __doc__ = """
@@ -65,21 +70,43 @@
  ## -
  ## if _p.click:
 {{_p.cc}} _p = C()
-{{_p.cc}} 
+{{_p.cc}}
 {{_p.cc}} @click.command(help=__doc__)
 {{_p.cc}} def main(**kwargs):
 {{_p.cc}}   _p.update(kwargs)
 {{_p.cc}} -
-{{_p.cc}} 
+{{_p.cc}}
 {{_p.cc}} with click.Context(main) as ctx:
 {{_p.cc}}   __doc__ = main.get_help(ctx)
 {{_p.cc}} -
-{{_p.cc}} 
+{{_p.cc}}
 {{_p.cc}} if ask_help :
 {{_p.cc}}  raise EndOfPlugin()
 {{_p.cc}} -
-{{_p.cc}} 
+{{_p.cc}}
 {{_p.cc}} invokeCmd(main, args)
+ ## -
+ ## elif _p.cyclopts:
+{{_p.cc}} _p = C()
+{{_p.cc}}
+{{_p.cc}} app = cyclopts.App(help=__doc__)
+{{_p.cc}} @app.default
+{{_p.cc}} def main(**kwargs):
+{{_p.cc}}   _p.update(kwargs)
+{{_p.cc}} -
+{{_p.cc}}
+{{_p.cc}} import io, contextlib
+{{_p.cc}} _buf = io.StringIO()
+{{_p.cc}} with contextlib.redirect_stdout(_buf):
+{{_p.cc}}   app.help_print([])
+{{_p.cc}} -
+{{_p.cc}} __doc__ = _buf.getvalue()
+{{_p.cc}}
+{{_p.cc}} if ask_help :
+{{_p.cc}}  raise EndOfPlugin()
+{{_p.cc}} -
+{{_p.cc}}
+{{_p.cc}} invokeCmdCyclopts(app, args)
  ## -
  ## elif _p.content is None :
 {{_p.cc}}

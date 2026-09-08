@@ -141,6 +141,7 @@ class OutStream(object):
       return f'Placeholder(name={self.name}, cb={self.cb}, bl={self.begin_line}, o_bl={self.ori_begin_line}, n_sec={len(self.sections)})'
 
   def __init__(self):
+    self.touched = False
     self.lines = []
     self.sections = []
     self.cur_section = None
@@ -216,7 +217,11 @@ It can also be to a callable object with this signature : ``overwrite(original: 
     self.sections.append((name, len(self.lines), m, n, cb))
 
   def write(self, s):
+    self.touched = True
     self.lines.extend(s.split('\n')[:-1])
+
+  def touch(self):
+    self.touched = True
 
   def getvalue(self):
     return "\n".join(self.lines) + '\n'
@@ -419,20 +424,52 @@ def processFile(in_p, out_p, is_opt, is_template, base_locals, tempiny_l, dest, 
     return C()
 
 def processDir(base_locals, in_p, out_p, file_name_parser):
+  """
+  Run `in_p`'s `_template.` file, if any, to decide where the directory
+  `in_p` should end up (`new_path`), or whether it should be skipped
+  entirely (`exclude()`).
+
+  If the file has the skbs header, it's processed like a regular template
+  (raw blocks, sections/placeholders, `touch()` all available) instead of
+  plain Python. Whether it has the header or not, if it wrote any content
+  or called `touch()` (`_OUT.touched`), `in_p` becomes a regular *file*
+  with that content instead of a directory - none of its own children are
+  processed in that case.
+
+  @return (new_path, content) - content is None unless `in_p` should become a file.
+  """
   path = in_p / file_name_parser.dir_template_filename
   if not path.exists() :
-    return out_p
+    return out_p, None
   with path.open('r') as f :
-    obj = compile(f.read(), path, 'exec')
+    tempiny, _ = tempinyFromIterable(f)
   _locals = C(**base_locals)
   _locals.dest = out_p
+  tmp_out_f = OutStream()
   try:
-    exec(obj, _locals.asDict(), _locals)
+    if tempiny is not None :
+      with path.open('r') as f :
+        _locals_dict = {
+          **_locals.asDict(),
+          'beginSection' : tmp_out_f.beginSection,
+          'endSection' : tmp_out_f.endSection,
+          'placeholder' : tmp_out_f.placeholder,
+          'touch' : tmp_out_f.touch,
+        }
+        _locals, exc = tempinyFile(tempiny, f, tmp_out_f, _locals_dict, path, out_p)
+        if exc :
+          raise exc
+    else :
+      with path.open('r') as f :
+        obj = compile(f.read(), path, 'exec')
+      _locals.touch = tmp_out_f.touch
+      exec(obj, _locals.asDict(), _locals)
   except EndOfTemplate:
     pass
   except ExcludeFile:
-    return None
-  return _locals.get('new_path', out_p)
+    return None, None
+  content = tmp_out_f.getvalue() if tmp_out_f.touched else None
+  return _locals.get('new_path', out_p), content
 
 def parsePathMod(path, base_locals):
   if path.is_file() :

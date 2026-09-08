@@ -13,9 +13,12 @@ from importlib import resources
 from pathlib import Path
 from traceback import print_exc
 
-import click
+import cyclopts
 
-from .pluginutils import Config as C, EndOfPlugin, PluginError, exclude, pluginError, endOfTemplate, invokeCmd, OptionParser
+from .pluginutils import (
+  Config as C, EndOfPlugin, PluginError, exclude, pluginError, endOfTemplate,
+  invokeCmd, invokeCmdCyclopts, OptionParser, getClick,
+)
 from .pathresolve import (
   findTemplates, tempinySyntaxRegex, parseFilePath, FileNameParser,
   OPT_PREFIX, TEMPLATE_PREFIX, FORCE_PREFIX, RAW_PREFIX, INCLUDE_DIRNAME, PATHMOD_FILENAME,
@@ -37,7 +40,9 @@ class SingleFileGlobals:
   ask_help: bool
   C: type
   click: object
+  cyclopts: object
   invokeCmd: Callable
+  invokeCmdCyclopts: Callable
   EndOfPlugin: type[Exception]
   PluginError: type[Exception]
   pluginError: Callable
@@ -209,8 +214,10 @@ class Backend(object):
         args = args,
         ask_help=ask_help,
         C=C,
-        click=click,
+        click=getClick(),
+        cyclopts=cyclopts,
         invokeCmd = invokeCmd,
+        invokeCmdCyclopts = invokeCmdCyclopts,
         EndOfPlugin=EndOfPlugin,
         PluginError=PluginError,
         pluginError=pluginError,
@@ -297,7 +304,21 @@ class Backend(object):
     )))
     base_locals.include = Include(include_paths, tempiny_l, base_locals, file_name_parser)
 
-    stack = [(False, src_root, Path(''))]
+    # The root itself can have a `_template.` controlling it, same as any
+    # other directory (see fileengine.processDir) - unlike nested ones,
+    # it's never reached by the loop below, so it's handled once here.
+    root_path, root_content = processDir(base_locals, src_root, Path(''), file_name_parser)
+    if root_content is not None :
+      if dest.is_dir() :
+        return False, f'{dest} already exists and is a directory, but this template produces a single file.'
+      dest.parent.mkdir(parents=True, exist_ok=True)
+      with dest.open('w') as f :
+        f.write(root_content)
+      return True, help
+    if root_path is None :
+      return True, help
+
+    stack = [(False, src_root, root_path)]
     while stack :
 
       seen, src, out = stack.pop()
@@ -310,6 +331,8 @@ class Backend(object):
             pathmod_stack[0][1] -= 1
         continue
 
+      if (dest / out).is_file() :
+        return False, f'{dest / out} already exists and is a file, but this template produces a directory there.'
       (dest / out).mkdir(parents=True, exist_ok=True)
       stack.append((True, src, out))
       pathmod = parsePathMod(src / '__pathmod.py', base_locals)
@@ -319,7 +342,6 @@ class Backend(object):
       else:
         pathmod_stack.insert(0, [pathmod, 0])
       include_paths.insert(0, src/'__include')
-      (dest / out).mkdir(parents=True, exist_ok=True)
 
       for in_p in src.iterdir() :
         if in_p.name in ('__pathmod.py', file_name_parser.dir_template_filename) :
@@ -327,7 +349,14 @@ class Backend(object):
         if in_p.is_dir() :
           if in_p.name != '__include' :
             out_path = parseFilePath(out / in_p.name, file_name_parser, ( pm for pm, _ in pathmod_stack ), is_dir=True)
-            out_path = processDir(base_locals, in_p, out_path, file_name_parser)
+            out_path, content = processDir(base_locals, in_p, out_path, file_name_parser)
+            if content is not None :
+              if (dest / out_path).is_dir() :
+                return False, f'{dest / out_path} already exists and is a directory, but this template produces a file there.'
+              (dest / out_path).parent.mkdir(parents=True, exist_ok=True)
+              with (dest / out_path).open('w') as f :
+                f.write(content)
+              continue
             if not out_path :
               continue
             stack.append((False, in_p, out_path))

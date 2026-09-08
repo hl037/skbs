@@ -1,2 +1,0 @@
-if _p.sft:
-  exclude()

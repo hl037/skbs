@@ -1,308 +1,206 @@
 
-import os
 import sys
-import traceback
-import click
-import click.shell_completion
-import typing as t
-from functools import wraps
-from itertools import chain
+from typing import Annotated
 
-from pathlib import Path
+import cyclopts
 
 from . import configutils
-from .backend import Backend, findTemplates
+from . import pluginutils
+from .backend import Backend
+from pathlib import Path
 
-"""
-Résolution algorithm :
-
-Command names are split by dash, and a prefix tree is constructed in alias.
-A tree is a list of tuple tuple ("name", sub_tree, cmd, i) where subtree is a tree, cmd is the command at this node, and i = 0, used later.
-
-Search for exact match with full command name. If found, return the command
-nodes = [aliases]
-for i in range(len(cmd_name)):
-  nodes = [ a for n, sub, cmd, j in nodes if cmd_name[i] == n[j] for a in chain(((n, sub, cmd, j+1),), sub) ]
-if len(nodes) == 0 :
-  return None
-else:
-  return nodes[1]
-"""
-
-def common_opts(*F):
-  def composed(a):
-    return reduce(lambda x, f: f(x), reversed(F), a)
-  return composed
-
-def _tree_nodes(t, fullname=None, level=-1):
-  if fullname is None :
-    return ( (name, *val, 0, name, level+1) for name, val in t.items() )
-  return ( (name, *val, 0, f'{fullname}-{name}', level+1) for name, val in t.items() )
-
-class AliasedGroup(click.Group):
-  AliasTree = dict[str, ('AliasedGroup.AliasTree', click.Command | None)]
-
-  def __init__(self, *args, **kwargs):
-    super().__init__(*args, **kwargs)
-    self.aliases = {} # type: AliasedGroup.AliasTree
-
-  def add_command(self, cmd: click.Command, name: t.Optional[str] = None) -> None:
-    name = name or cmd.name
-    rv = super().add_command(cmd, name)
-    node = self.aliases 
-    subs = name.split('-')
-    for sub in subs[:-1]:
-      node, *_ = node.setdefault(sub, ({}, None))
-    sub, c = node.setdefault(subs[-1], ({}, cmd))
-    if c is not cmd :
-      node[subs[-1]] = (sub, cmd)
-    return rv
-
-  def get_command(self, ctx, cmd_name):
-    rv = super().get_command(ctx, cmd_name)
-    if rv is not None:
-      return rv
-    nodes = list(_tree_nodes(self.aliases))
-    for l in cmd_name:
-      nodes = [ a for n, sub, cmd, i, fn, level in nodes if l == n[i] for a in chain(((n, sub, cmd, i+1, fn, level),), _tree_nodes(sub, fn, level)) ]
-    
-    matches = [ (cmd, fn, level) for _, _, cmd, i, fn, level in nodes if i > 0 ]
-    if len(matches) != 0 :
-      m = max( level for _, _, level in matches)
-      matches = [ (cmd, fn) for cmd, fn, level in matches if level == m ]
-      if len(matches) != 1 :
-        ctx.fail(f"Ambiguous command name : {' '.join(sorted(fn for _, fn in matches))}")
-      return matches[0][0]
-
-    unmatches = [ (cmd, fn, level) for _, _, cmd, i, fn, level in nodes if i == 0 ]
-    if len(matches) != 0 :
-      m = max( level for _, _, level in unmatches)
-      matches = [ (cmd, fn) for cmd, fn, level in unmatches if level == m ]
-      if len(matches) != 1 :
-        ctx.fail(f"Ambiguous command name : {' '.join(sorted(fn for _, fn in matches))}")
-      return matches[0][0]
-        
-    ctx.fail(f"Ambiguous command name : {' '.join(sorted(fn for *_, fn in nodes))}")
-
-  def resolve_command(self, ctx, args):
-    # always return the full command name
-    _, cmd, args = super().resolve_command(ctx, args)
-    return cmd.name, cmd, args
-
-def _createBackend(ctx: click.Context):
-  global B
-  while ctx is not None :
-    if ctx.command is main :
-      ctx.invoke(main)
-      break
-    ctx = ctx.parent
-  if B is None :
-    B = configutils.getBackend(None)
-    
-
-class TemplatePath(click.types.Path):
-  """
-  A click type to provide auto completion for templates
-  """
-
-  def shell_complete(
-    self, ctx: click.Context, param: click.Parameter, incomplete: str
-  ) -> t.List[click.shell_completion.CompletionItem]:
-    _createBackend(ctx)
-    CompletionItem = click.shell_completion.CompletionItem
-    root_parts = incomplete.split('/')
-    root = '/'.join(root_parts[:-1])
-    candidates = B.findTemplates(Path(), root, rec=False, dirs=True)
-    if root :
-      root = root + '/'
-    return [
-      CompletionItem(f'{root}{p}')
-      for _p in candidates if (p := str(_p)).startswith(root_parts[-1])
-    ]
-
-DestPath = click.types.Path
-
-# class DestPath(click.types.Path):
-#   """
-#   A click type to add '@help' to the default Path type
-#   """
-#   def shell_complete(
-#     self, ctx: click.Context, param: click.Parameter, incomplete: str
-#   ) -> t.List[click.shell_completion.CompletionItem]:
-#     return super().shell_complete(ctx, param, incomplete) + [
-#       click.shell_completion.CompletionItem(incomplete),
-#       click.shell_completion.CompletionItem('@help')
-#     ]
-#     
+app = cyclopts.App(
+  name='skbs',
+  help_epilogue=f'Global options:\n  -c, --config PATH  Override the default configuration path [default: {configutils.default_config}]',
+)
 
 config_path = None
 B = None
 
 def ensureB(f):
+  from functools import wraps
   @wraps(f)
   def _f(*args, **kwargs):
     if B is None :
-      click.secho('You should first create the config')
-      exit(1)
+      print('You should first create the config')
+      raise SystemExit(1)
     return f(*args, **kwargs)
   return _f
 
-  
-
-@click.command(cls=AliasedGroup)
-@click.option('--config', '-c', type=click.Path(), default=configutils.default_config, help='Override the default configuration path')
-def main(config):
-  global config_path
-  global B
-  config_path = config
+def confirm(prompt):
   try:
-    B = configutils.getBackend(config)
+    return input(f'{prompt} [y/N]: ').strip().lower() in ('y', 'yes')
+  except EOFError :
+    return False
+
+def _color(s, code):
+  return f'\033[{code}m{s}\033[0m'
+
+def _extractConfigOption(argv):
+  """
+  Pull -c/--config VALUE out of argv by hand, so cyclopts never sees it and
+  never gets a chance to consume the following `--` (needed verbatim by
+  `gen`'s own end_of_options_delimiter) while looking for -c/--config's own
+  argument. `app.meta`'s variadic passthrough was tried and always strips
+  the first `--` it sees, wherever it is in the stream.
+  """
+  config = configutils.default_config
+  remaining = []
+  it = iter(argv)
+  for tok in it :
+    if tok in ('-c', '--config') :
+      config = next(it, config)
+    else :
+      remaining.append(tok)
+  return config, remaining
+
+def run(argv=None):
+  global config_path, B
+  if argv is None :
+    argv = sys.argv[1:]
+  config_path, argv = _extractConfigOption(argv)
+  try:
+    B = configutils.getBackend(config_path)
   except FileNotFoundError:
     pass
-  
-@main.command(name='create-config')
-@click.argument('path', required=False, default=configutils.default_config)
-def createConfig(path):
+  app(argv)
+
+@app.command(name='create-config')
+def createConfig(path: str = configutils.default_config):
   """
   Create / reset to default the configuration file.
   """
   p = Path(path)
   if p.is_file() :
-    if not click.confirm(f'The configuration file {path} already exists, are you sure you want to reset it to defaults ?'):
-      exit(0)
+    if not confirm(f'The configuration file {path} already exists, are you sure you want to reset it to defaults ?'):
+      raise SystemExit(0)
   Backend.createConfig(p)
-  click.echo(f'Default configuration file written at : {path}')
+  print(f'Default configuration file written at : {path}')
 
-@main.command(name='config-path')
-def config_path():
+@app.command(name='config-path')
+def configPath():
   """
-  Prints the path to the in-use configuration file. 
+  Prints the path to the in-use configuration file.
   """
   if B is None :
-    click.secho(config_path)
+    print(config_path)
   else:
-    click.secho(B.config.config_path)
+    print(B.config.config_path)
 
-
-@main.command(name='install-defaults')
-@click.option('--symlink', '-s', is_flag=True)
+@app.command(name='install-defaults', alias='i-d')
 @ensureB
-def installDefaults(symlink):
+def installDefaults(symlink: Annotated[bool, cyclopts.Parameter(name=['--symlink', '-s'])] = False):
   """
   Install default provided templates
   """
   f = B.installDefaultTemplates(symlink)
-  click.echo(f'Default templates installed at {f}')
+  print(f'Default templates installed at {f}')
 
-@main.command(name='install')
-@click.option('--symlink', '-s', is_flag=True)
-@click.option('--name', '-n', type=str, default=None, required=False)
-@click.argument('src', type=click.Path())
+@app.command(alias='i')
 @ensureB
-def install(src, name, symlink):
+def install(
+  src: str,
+  symlink: Annotated[bool, cyclopts.Parameter(name=['--symlink', '-s'])] = False,
+  name: Annotated[str | None, cyclopts.Parameter(name=['--name', '-n'])] = None,
+):
   """
   Install a new template.
   """
-  src = Path(src)
+  src_p = Path(src)
   if name is None :
-    name = src.name
-  f = B.installTemplate(name, src, symlink)
-  click.echo(f'{name} template installed at {f}')
-  
-@main.command(name='uninstall')
-@click.argument('name')
+    name = src_p.name
+  f = B.installTemplate(name, src_p, symlink)
+  print(f'{name} template installed at {f}')
+
+@app.command(alias='u')
 @ensureB
-def uninstall(name):
+def uninstall(name: str):
   """
   Uninstall a template
   """
   f = B.uninstallTemplate(name)
-  click.echo(f'{name} uninstalled at {f}')
+  print(f'{name} uninstalled at {f}')
 
-@main.command(name='list')
-@click.argument('paths', nargs=-1)
+@app.command(name='list', alias=['l', 'ls'])
 @ensureB
-def listTemplates(paths):
+def listTemplates(*paths: str):
   """
   List installed templates. If paths are given, search from them instead of the installed ones.
   """
-  se = click.secho
   if len(paths) == 0 :
     default, user = B.listTemplates()
-    se('\n')
-    se('User-installed templates :', fg='cyan', nl=False)
-    se('\n  ', nl=False)
-    se("\n  ".join(map(str, user)), fg='green', nl=False)
-    se('\n\n', nl=False)
-    se('Default templates :', fg='cyan', nl=False)
-    se('\n  ', nl=False)
-    se("\n  ".join(map(str, default)), fg='green', nl=False)
-    se('\n')
-
+    print()
+    print(_color('User-installed templates :', 36))
+    print('  ' + '\n  '.join(map(str, user)))
+    print()
+    print(_color('Default templates :', 36))
+    print('  ' + '\n  '.join(map(str, default)))
   else:
     for p in paths :
       templates = B.findTemplates(Path(), p)
-      se('\n')
-      se(f'Templates found in {p} :', fg='cyan', nl=False)
-      se('\n  ', nl=False)
-      se("\n  ".join(map(str, templates)), fg='green', nl=False)
-      se('\n\n', nl=False)
-      
+      print()
+      print(_color(f'Templates found in {p} :', 36))
+      print('  ' + '\n  '.join(map(str, templates)))
+      print()
 
+genApp = cyclopts.App(name='gen', end_of_options_delimiter='--')
+app.command(genApp, alias='g')
 
-@main.command(name='gen')
-@click.option('--debug', '-g', is_flag=True)
-@click.argument('template', type=TemplatePath())
-@click.argument('dest', type=DestPath())
-@click.option('--stdout', is_flag=True, help='Only for single file templates : output to stdout. --single-file is implied')
-@click.option('--single-file', '-s', is_flag=True, help='Authorize single file template for non installed templates.')
-@click.argument('args', nargs=-1, type=click.UNPROCESSED)
-@click.pass_context
+@genApp.default
 @ensureB
-def gen(ctx, debug, template, dest, stdout, single_file, args):
+def gen(
+  template: str,
+  dest: str,
+  *args: str,
+  debug: Annotated[bool, cyclopts.Parameter(name=['--debug', '-g'])] = False,
+  stdout: Annotated[bool, cyclopts.Parameter(help='Only for single file templates : output to stdout. --single-file is implied')] = False,
+  single_file: Annotated[bool, cyclopts.Parameter(name=['--single-file', '-s'], help='Authorize single file template for non installed templates.')] = False,
+):
   """
   Generate a skeleton from a template.
 
-  template : if template starts with an '@', it will look for an installed template. Else, it will be considered as the template path.
-  dest : the output directory (parents will be created if needed)
-  args : argument passed to the template ( skbs gen <template_name> -- --help for more informations )
+  Parameters
+  ----------
+  template: str
+    if template starts with an '@', it will look for an installed template. Else, it will be considered as the template path.
+  dest: str
+    the output directory (parents will be created if needed)
+  args: str
+    argument passed to the template ( skbs gen <template_name> -- --help for more informations )
   """
   try:
-    from . import pluginutils
-    pluginutils.__ctx = ctx
-    pluginutils.__name = f'{template} {dest} --'
+    pluginutils.__name = f'skbs gen {template} {dest} --'
     template_path = B.findTemplate(template, single_file_authorized=single_file or stdout)
     out_f = None
     if stdout :
       out_f = sys.stdout
-    res, help = B.execTemplate(template_path, dest, args, out_f)
+    res, help = B.execTemplate(template_path, dest, list(args), out_f)
     if not res :
-      click.echo(help)
+      print(help)
   except:
     if debug :
       import pdb; pdb.post_mortem(sys.exc_info()[2])
     raise
 
-def bind_skip_after_double_dash_parse_args(cmd):
-  ori = cmd.parse_args
-  def parse_args(self, ctx, args):
-    try:
-      ind = args.index('--')
-    except ValueError :
-      ori(ctx, args)
-      ctx.params['args'] = []
-      return
-    n_args = args[:ind]
-    ret = ori(ctx, n_args)
-    ctx.params['args'] = args[ind+1:]
-    return ret
-  cmd.parse_args = parse_args.__get__(cmd, cmd.__class__)
-  return
+completeApp = cyclopts.App(name='_complete-templates', show=False)
+app.command(completeApp)
 
-try:
-  bind_skip_after_double_dash_parse_args(gen)
-except:
-  import pdb; pdb.post_mortem(sys.exc_info()[2])
-  raise
+@completeApp.default
+@ensureB
+def completeTemplates(incomplete: str = ''):
+  """
+  (internal) Print template name completions for the given partial name, one per line.
+  Used by the bash/zsh completion scripts, not meant to be called directly.
+  """
+  root_parts = incomplete.split('/')
+  root = '/'.join(root_parts[:-1])
+  candidates = B.findTemplates(Path(), root, rec=False, dirs=True)
+  if root :
+    root = root + '/'
+  for _p in candidates :
+    p = str(_p)
+    if p.startswith(root_parts[-1]) :
+      print(f'{root}{p}')
 
-
+if __name__ == '__main__':
+  run()

@@ -1,23 +1,16 @@
 _skbs_completion() {
-    local IFS=$'\n'
-    local response
+    local cur prev candidates
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    response=$(env COMP_WORDS="${COMP_WORDS[*]}" COMP_CWORD=$COMP_CWORD _SKBS_COMPLETE=bash_complete $1)
+    if [[ "$prev" == "gen" || "$prev" == "g" ]]; then
+        candidates=$("${COMP_WORDS[0]}" _complete-templates "$cur" 2>/dev/null)
+        COMPREPLY=( $(compgen -W "$candidates" -- "$cur") )
+        return 0
+    fi
 
-    for completion in $response; do
-        IFS=',' read type value <<< "$completion"
-
-        if [[ $type == 'dir' ]]; then
-            COMREPLY=()
-            compopt -o dirnames
-        elif [[ $type == 'file' ]]; then
-            COMREPLY=()
-            compopt -o default
-        elif [[ $type == 'plain' ]]; then
-            COMPREPLY+=($value)
-        fi
-    done
-
+    COMPREPLY=( $(compgen -f -- "$cur") )
     return 0
 }
 
@@ -26,4 +19,3 @@ _skbs_completion_setup() {
 }
 
 _skbs_completion_setup;
-

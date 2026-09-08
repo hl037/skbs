@@ -14,9 +14,9 @@ authors = [
 ]
 urls = { Homepage = "https://github.com/hl037/skbs" }
 dependencies = [
-  "click>=0.7",
+  "cyclopts>=4.25",
   "appdirs>=1.4.4",
-  "tempiny>=1.1",
+  "tempiny>=1.5",
   "addict",
 ]
 classifiers = [
@@ -33,14 +33,18 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
+click = [
+  "click>=0.7",
+]
 test = [
   "pytest>=6.2.2",
   "pytest_datadir_ng>=1.1.1",
   "pytest-cov>=2.11.1",
+  "click>=0.7",
 ]
 
 [project.scripts]
-skbs = "skbs.cli:main"
+skbs = "skbs.cli:run"
 
 [tool.setuptools.packages.find]
 include = ["skbs*"]

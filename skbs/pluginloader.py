@@ -11,12 +11,12 @@ from pathlib import Path
 from importlib.machinery import ModuleSpec, SourceFileLoader
 from importlib.util import module_from_spec, spec_from_loader
 
-import click
+import cyclopts
 from tempiny import Tempiny
 
 from .pluginutils import (
-  Config as C, EndOfPlugin, PluginError, pluginError, invokeCmd, OptionParser,
-  extractHelpFromLocals,
+  Config as C, EndOfPlugin, PluginError, pluginError, invokeCmd, invokeCmdCyclopts,
+  OptionParser, getClick, extractHelpFromLocals,
 )
 from .pathresolve import (
   FileNameParser, OPT_PREFIX, FORCE_PREFIX, RAW_PREFIX, TEMPLATE_PREFIX,
@@ -37,7 +37,9 @@ class PluginGlobals:
   ask_help: bool
   C: type
   click: object
+  cyclopts: object
   invokeCmd: Callable
+  invokeCmdCyclopts: Callable
   EndOfPlugin: type[Exception]
   PluginError: type[Exception]
   pluginError: Callable
@@ -90,8 +92,10 @@ def parsePlugin(path, args, dest, ask_help, invoke_template):
     args = args,
     ask_help = ask_help,
     C=C,
-    click=click,
+    click=getClick(),
+    cyclopts=cyclopts,
     invokeCmd = invokeCmd,
+    invokeCmdCyclopts = invokeCmdCyclopts,
     EndOfPlugin=EndOfPlugin,
     PluginError=PluginError,
     pluginError=pluginError,
