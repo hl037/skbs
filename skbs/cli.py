@@ -195,12 +195,44 @@ def completeTemplates(incomplete: str = ''):
   root_parts = incomplete.split('/')
   root = '/'.join(root_parts[:-1])
   candidates = B.findTemplates(Path(), root, rec=False, dirs=True)
-  if root :
-    root = root + '/'
+  # Backend.findTemplates's "@..."-rooted branch returns candidates already
+  # fully qualified with `root` baked in (e.g. root="@ns" -> "@ns/thing");
+  # the plain-local-path branch (and the root=="" case, listing both @names
+  # and local files) returns bare names relative to `root` instead, needing
+  # it prepended back here to reconstruct the full completion.
+  qualified = bool(root) and root.startswith('@')
+  known_prefix = root + '/' if qualified else ''
+  add_prefix = '' if (qualified or not root) else root + '/'
   for _p in candidates :
     p = str(_p)
-    if p.startswith(root_parts[-1]) :
-      print(f'{root}{p}')
+    tail = p[len(known_prefix):] if p.startswith(known_prefix) else p
+    if tail.startswith(root_parts[-1]) :
+      print(f'{add_prefix}{p}')
+
+# Kept as a plain list here (rather than introspecting cyclopts' private
+# App._commands) so it stays trivially in sync with the @app.command(...)
+# declarations above, without depending on cyclopts internals.
+COMMAND_NAMES = (
+  'create-config', 'config-path',
+  'install-defaults', 'i-d',
+  'install', 'i',
+  'uninstall', 'u',
+  'list', 'l', 'ls',
+  'gen', 'g',
+)
+
+completeCommandsApp = cyclopts.App(name='_complete-commands', show=False)
+app.command(completeCommandsApp)
+
+@completeCommandsApp.default
+def completeCommands(incomplete: str = ''):
+  """
+  (internal) Print command name completions for the given partial name, one per line.
+  Used by the bash/zsh completion scripts, not meant to be called directly.
+  """
+  for name in COMMAND_NAMES :
+    if name.startswith(incomplete) :
+      print(name)
 
 if __name__ == '__main__':
   run()

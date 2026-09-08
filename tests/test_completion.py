@@ -78,6 +78,38 @@ def test_completeTemplates_localDirectory(skbsEnv, tmp_path):
   r = _run(skbsEnv, '_complete-templates', 'mytemp', cwd=tmp_path)
   assert 'mytemplate' in r.stdout.splitlines()
 
+
+@pytest.fixture()
+def namespacedTemplate(skbsEnv, tmp_path):
+  """
+  An installed template that is itself a namespace directory containing a
+  real template one level down (like the shipped cpp/class example) -
+  `@mynamespace` is browseable, `@mynamespace/class` is the actual template.
+  """
+  (tmp_path / 'ns' / 'class' / 'root').mkdir(parents=True)
+  (tmp_path / 'ns' / 'class' / 'plugin.py').touch()
+  r = _run(skbsEnv, 'install', str(tmp_path / 'ns'), '-n', 'mynamespace')
+  assert r.returncode == 0, r.stderr
+  return skbsEnv
+
+def test_completeTemplates_nested_topLevelPartialPrefix(namespacedTemplate):
+  r = _run(namespacedTemplate, '_complete-templates', '@my')
+  assert r.stdout.splitlines() == ['@mynamespace/']
+
+def test_completeTemplates_nested_topLevelExactNoSlash(namespacedTemplate):
+  r = _run(namespacedTemplate, '_complete-templates', '@mynamespace')
+  assert r.stdout.splitlines() == ['@mynamespace/']
+
+def test_completeTemplates_nested_trailingSlash_noDuplicatedPrefix(namespacedTemplate):
+  r = _run(namespacedTemplate, '_complete-templates', '@mynamespace/')
+  assert r.stdout.splitlines() == ['@mynamespace/class']
+
+def test_completeTemplates_nested_leafPrefix(namespacedTemplate):
+  r = _run(namespacedTemplate, '_complete-templates', '@mynamespace/cl')
+  assert r.stdout.splitlines() == ['@mynamespace/class']
+  r = _run(namespacedTemplate, '_complete-templates', '@mynamespace/zz')
+  assert r.stdout == ''
+
 def test_bashCompletion_dynamicTemplateNames(skbsEnv, shim):
   r = _run(skbsEnv, 'install-defaults')
   assert r.returncode == 0, r.stderr
@@ -85,7 +117,7 @@ def test_bashCompletion_dynamicTemplateNames(skbsEnv, shim):
   source "{BASH_SCRIPT}"
   COMP_WORDS=("{shim}" gen "@sk")
   COMP_CWORD=2
-  _skbs_completion "{shim}"
+  _skbs "{shim}"
   echo "${{COMPREPLY[@]}}"
   '''
   r = subprocess.run(['bash', '-c', script], env=skbsEnv, capture_output=True, text=True)
@@ -100,25 +132,51 @@ def test_bashCompletion_aliasG_sameAsGen(skbsEnv, shim):
   source "{BASH_SCRIPT}"
   COMP_WORDS=("{shim}" g "@sk")
   COMP_CWORD=2
-  _skbs_completion "{shim}"
+  _skbs "{shim}"
   echo "${{COMPREPLY[@]}}"
   '''
   r = subprocess.run(['bash', '-c', script], env=skbsEnv, capture_output=True, text=True)
   assert '@skbs' in r.stdout.split()
 
-def test_bashCompletion_fallsBackToFilesOutsideGen(skbsEnv, shim, tmp_path):
-  (tmp_path / 'somefile.txt').touch()
+def test_bashCompletion_commandNames(skbsEnv, shim):
+  """
+  The bug this whole file exists to catch: `skbs <TAB>` must list the
+  subcommands (this is the static part cyclopts generates natively from
+  the actual @app.command(...) declarations - no custom protocol needed).
+  """
   script = f'''
-  cd "{tmp_path}"
   source "{BASH_SCRIPT}"
-  COMP_WORDS=("{shim}" list "some")
-  COMP_CWORD=2
-  _skbs_completion "{shim}"
+  COMP_WORDS=("{shim}" "ge")
+  COMP_CWORD=1
+  _skbs "{shim}"
   echo "${{COMPREPLY[@]}}"
   '''
   r = subprocess.run(['bash', '-c', script], env=skbsEnv, capture_output=True, text=True)
-  assert 'somefile.txt' in r.stdout.split()
+  assert r.returncode == 0, r.stderr
+  assert r.stdout.split() == ['gen']
+
+def test_bashCompletion_flagNames(skbsEnv, shim):
+  script = f'''
+  source "{BASH_SCRIPT}"
+  COMP_WORDS=("{shim}" install "--sy")
+  COMP_CWORD=2
+  _skbs "{shim}"
+  echo "${{COMPREPLY[@]}}"
+  '''
+  r = subprocess.run(['bash', '-c', script], env=skbsEnv, capture_output=True, text=True)
+  assert '--symlink' in r.stdout.split()
 
 def test_zshCompletionScript_syntaxIsValid():
   r = subprocess.run(['zsh', '-n', str(ZSH_SCRIPT)], capture_output=True, text=True)
   assert r.returncode == 0, r.stderr
+
+def test_zshCompletionScript_hasDynamicTemplateHook():
+  # Full interactive zsh completion (compinit + real Tab press via a pty)
+  # is too flaky/timing-sensitive to assert on reliably here (zsh's
+  # compadd only works from within a real completion widget dispatch) -
+  # this at least locks in that the generated+patched script still wires
+  # the dynamic hook to the "gen"/"g" TEMPLATE positional, which is the
+  # one thing cyclopts' own generator can't produce on its own.
+  src = ZSH_SCRIPT.read_text()
+  assert '_skbs_complete_template_names' in src
+  assert src.count(":_skbs_complete_template_names'") == 2  # gen + its alias g
