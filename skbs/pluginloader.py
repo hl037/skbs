@@ -14,6 +14,7 @@ from importlib.util import module_from_spec, spec_from_loader
 import cyclopts
 from tempiny import Tempiny
 
+from . import _gencontext
 from .pluginutils import (
   Config as C, EndOfPlugin, PluginError, pluginError, invokeCmd, invokeCmdCyclopts,
   OptionParser, getClick, extractHelpFromLocals,
@@ -45,7 +46,7 @@ class PluginGlobals:
   pluginError: Callable
   inside_skbs_plugin: bool
   Tempiny: type
-  invokeTemplate: Callable
+  skbs: object
   dest: Path | None
   parseCmd: OptionParser
 
@@ -78,16 +79,15 @@ def createPluginModule(path, g):
     g.update(module.__dict__)
   return module.__dict__
 
-def parsePlugin(path, args, dest, ask_help, invoke_template):
+def parsePlugin(path, args, dest, ask_help, backend):
   """
   Load and run `path`'s plugin.py (if any), gathering `conf`/`plugin`/`help`
-  from the resulting namespace. `invoke_template` is the Backend's
-  invokeTemplate, wired here so plugins can call `invokeTemplate(...)`
-  relative to their own `dest`.
+  from the resulting namespace. `backend` is the Backend instance in use,
+  wired into the gen context so plugins can call `skbs.gen(...)` relative
+  to their own `dest`.
   """
+  import skbs
   plugin = None
-  def invokeTemplate(_template_name, _dest, _args):
-    invoke_template(_template_name, str(Path(dest)/_dest), _args)
   g = C(**vars(PluginGlobals(
     args = args,
     ask_help = ask_help,
@@ -101,7 +101,7 @@ def parsePlugin(path, args, dest, ask_help, invoke_template):
     pluginError=pluginError,
     inside_skbs_plugin=True,
     Tempiny=Tempiny,
-    invokeTemplate=invokeTemplate,
+    skbs=skbs.templateSkbs,
     # Root output directory as given on the CLI: never resolved to an
     # absolute path by skbs. To make it available to the per-file
     # templates below (where `dest` means something else, see
@@ -112,8 +112,10 @@ def parsePlugin(path, args, dest, ask_help, invoke_template):
   )))
   if path.is_file() :
     # source plugin.py if one
+    root = Path(dest).resolve()
     try:
-      g.update(createPluginModule(path.parent, g))
+      with _gencontext.pushed(backend, root, root, None):
+        g.update(createPluginModule(path.parent, g))
     except EndOfPlugin:
       pass
   help = extractHelpFromLocals(g)

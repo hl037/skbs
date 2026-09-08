@@ -8,7 +8,9 @@ import io
 import shutil
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 
+from . import _gencontext
 from .pluginutils import (
   Config as C, EndOfPlugin, PluginError, ExcludeFile, EndOfTemplate,
   extractHelpFromLocals,
@@ -31,7 +33,7 @@ class FileGlobals:
   file_name_parser: FileNameParser
   exclude: Callable
   endOfTemplate: Callable
-  invokeTemplate: Callable
+  skbs: object
 
 
 class Include(object):
@@ -364,7 +366,7 @@ def tempinyFile(tempiny, in_f, out_f, base_locals, in_p, out_p):
   template = tempiny.compile(in_f, filename=in_p, add_to_linecache=True)
   return template(out_f, _locals.asDict())
 
-def processFile(in_p, out_p, is_opt, is_template, base_locals, tempiny_l, dest, out_f=None):
+def processFile(in_p, out_p, is_opt, is_template, base_locals, tempiny_l, dest, out_f=None, backend=None, root=None):
   tempiny = None
   if is_template != False :
     with in_p.open('r') as in_f :
@@ -385,7 +387,9 @@ def processFile(in_p, out_p, is_opt, is_template, base_locals, tempiny_l, dest, 
         'endSection' : tmp_out_f.endSection,
         'placeholder' : tmp_out_f.placeholder,
       }
-      _locals, exc = tempinyFile(tempiny, in_f, tmp_out_f,  _locals, in_p, out_p)
+      parent = (dest / out_p).parent if out_p is not None else dest
+      with _gencontext.pushed(backend, root, parent, tmp_out_f):
+        _locals, exc = tempinyFile(tempiny, in_f, tmp_out_f,  _locals, in_p, out_p)
       if exc :
         try :
           raise exc
@@ -423,7 +427,7 @@ def processFile(in_p, out_p, is_opt, is_template, base_locals, tempiny_l, dest, 
     shutil.copyfile(in_p, out_p)
     return C()
 
-def processDir(base_locals, in_p, out_p, file_name_parser):
+def processDir(base_locals, in_p, out_p, file_name_parser, dest=None, backend=None):
   """
   Run `in_p`'s `_template.` file, if any, to decide where the directory
   `in_p` should end up (`new_path`), or whether it should be skipped
@@ -446,24 +450,27 @@ def processDir(base_locals, in_p, out_p, file_name_parser):
   _locals = C(**base_locals)
   _locals.dest = out_p
   tmp_out_f = OutStream()
+  root = Path(dest).resolve() if dest is not None else None
+  parent = (dest / out_p) if (dest is not None and out_p is not None) else dest
   try:
-    if tempiny is not None :
-      with path.open('r') as f :
-        _locals_dict = {
-          **_locals.asDict(),
-          'beginSection' : tmp_out_f.beginSection,
-          'endSection' : tmp_out_f.endSection,
-          'placeholder' : tmp_out_f.placeholder,
-          'touch' : tmp_out_f.touch,
-        }
-        _locals, exc = tempinyFile(tempiny, f, tmp_out_f, _locals_dict, path, out_p)
-        if exc :
-          raise exc
-    else :
-      with path.open('r') as f :
-        obj = compile(f.read(), path, 'exec')
-      _locals.touch = tmp_out_f.touch
-      exec(obj, _locals.asDict(), _locals)
+    with _gencontext.pushed(backend, root, parent, tmp_out_f):
+      if tempiny is not None :
+        with path.open('r') as f :
+          _locals_dict = {
+            **_locals.asDict(),
+            'beginSection' : tmp_out_f.beginSection,
+            'endSection' : tmp_out_f.endSection,
+            'placeholder' : tmp_out_f.placeholder,
+            'touch' : tmp_out_f.touch,
+          }
+          _locals, exc = tempinyFile(tempiny, f, tmp_out_f, _locals_dict, path, out_p)
+          if exc :
+            raise exc
+      else :
+        with path.open('r') as f :
+          obj = compile(f.read(), path, 'exec')
+        _locals.touch = tmp_out_f.touch
+        exec(obj, _locals.asDict(), _locals)
   except EndOfTemplate:
     pass
   except ExcludeFile:

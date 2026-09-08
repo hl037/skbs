@@ -109,6 +109,110 @@ def test_installTemplate_over(freshBackend, datadir):
   target_templates = tmp_path / 'templates/t1'
   assertDirsEqual(target_templates, t2)
 
+
+# Git-URL install :
+
+@pytest.mark.parametrize('url', [
+  'https://github.com/hl037/skbs.git',
+  'https://github.com/hl037/skbs',  # no .git suffix, still has a URL scheme
+  'git://github.com/hl037/skbs.git',
+  'ssh://git@github.com/hl037/skbs.git',
+  'git@github.com:hl037/skbs.git',
+  'file:///tmp/somewhere/skbs.git',
+])
+def test_isGitUrl_recognizesGitUrls(url):
+  from skbs.backend import Backend
+  assert Backend.isGitUrl(url)
+
+@pytest.mark.parametrize('src', [
+  '/home/user/mytemplate',
+  './mytemplate',
+  'mytemplate',
+  'C:\\Users\\me\\mytemplate',
+])
+def test_isGitUrl_rejectsLocalPaths(src):
+  from skbs.backend import Backend
+  assert not Backend.isGitUrl(src)
+
+@pytest.mark.parametrize('url,name', [
+  ('https://github.com/hl037/skbs.git', 'github.com/hl037/skbs'),
+  ('https://github.com/hl037/skbs', 'github.com/hl037/skbs'),
+  ('ssh://git@github.com/hl037/skbs.git', 'github.com/hl037/skbs'),
+  ('git@github.com:hl037/skbs.git', 'github.com/hl037/skbs'),
+])
+def test_gitUrlToName(url, name):
+  from skbs.backend import Backend
+  assert Backend.gitUrlToName(url) == name
+
+def test_installTemplateFromGit_missingGit_raisesGitError(freshBackend, monkeypatch):
+  from skbs.backend import GitError
+  B, _ = freshBackend
+  monkeypatch.setattr('shutil.which', lambda *a, **k: None)
+  with pytest.raises(GitError):
+    B.installTemplateFromGit('git@github.com:hl037/skbs.git')
+
+@pytest.fixture()
+def localGitRepo(tmp_path):
+  """
+  A local bare repo, cloned via a `file://` URL, so the test exercises a
+  real `git clone` without needing network access.
+  """
+  import subprocess
+  work = tmp_path / 'work_repo'
+  work.mkdir()
+  subprocess.run(['git', 'init', '-q', '-b', 'main', str(work)], check=True)
+  (work / 'file.txt').write_text('hello from git\n')
+  subprocess.run(['git', '-C', str(work), 'add', 'file.txt'], check=True)
+  subprocess.run(['git', '-C', str(work), '-c', 'user.email=t@t.t', '-c', 'user.name=t', 'commit', '-q', '-m', 'init'], check=True)
+  bare = tmp_path / 'bare_repo.git'
+  subprocess.run(['git', 'clone', '-q', '--bare', str(work), str(bare)], check=True)
+  return f'file://{bare}'
+
+def test_installTemplateFromGit_clonesToDerivedName(freshBackend, localGitRepo, tmp_path):
+  B, config_dir = freshBackend
+  dest = B.installTemplateFromGit(localGitRepo)
+  assert dest.is_dir()
+  assert (dest / 'file.txt').read_text() == 'hello from git\n'
+  assert dest == config_dir / 'templates' / B.gitUrlToName(localGitRepo)
+
+def test_installTemplateFromGit_explicitName(freshBackend, localGitRepo, tmp_path):
+  B, config_dir = freshBackend
+  dest = B.installTemplateFromGit(localGitRepo, name='mycopy')
+  assert dest == config_dir / 'templates/mycopy'
+  assert (dest / 'file.txt').read_text() == 'hello from git\n'
+
+def test_installTemplateFromGit_overwritesExisting(freshBackend, localGitRepo, tmp_path):
+  B, config_dir = freshBackend
+  target = config_dir / 'templates/mycopy'
+  target.mkdir(parents=True)
+  (target / 'stale.txt').write_text('old')
+  B.installTemplateFromGit(localGitRepo, name='mycopy')
+  assert not (target / 'stale.txt').exists()
+  assert (target / 'file.txt').read_text() == 'hello from git\n'
+
+def test_installTemplateFromGit_badUrl_raisesGitError(freshBackend, tmp_path):
+  from skbs.backend import GitError
+  B, _ = freshBackend
+  with pytest.raises(GitError):
+    B.installTemplateFromGit(f'file://{tmp_path / "does_not_exist.git"}')
+
+def test_cli_install_gitUrl(freshBackend, localGitRepo):
+  from skbs.cli import install
+  B, config_dir = freshBackend
+  import skbs.cli as cli
+  cli.B = B
+  install(localGitRepo)
+  dest = config_dir / 'templates' / B.gitUrlToName(localGitRepo)
+  assert (dest / 'file.txt').read_text() == 'hello from git\n'
+
+def test_cli_install_gitUrl_symlinkRejected(freshBackend, localGitRepo):
+  from skbs.cli import install
+  B, config_dir = freshBackend
+  import skbs.cli as cli
+  cli.B = B
+  with pytest.raises(SystemExit):
+    install(localGitRepo, symlink=True)
+
   
 
 # Processing tests :

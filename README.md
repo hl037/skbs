@@ -27,6 +27,8 @@ Moreover, contrary to other template language, it is possible to change the deli
 
   * Turing complete
   * Easy to create, install, use, and share templates
+  * Install a template straight from a git URL (no manual clone needed)
+  * Compose templates: call one template from another with `skbs.gen()`
   * Section to keep user edits on a previously generated file
   * Dynamic file and directory names
   * In-template Click integration to provide quickly user-friendly CLI-like options 
@@ -167,6 +169,8 @@ Inside `my_second_template`, `plugin.py` is the entry point where you can parse 
 
 The content of the `root` directory will be put inside the destination the user provided, each file will be checked for a template header line, and if found, will be parsed and executed as for the self-contained single file template.
 
+Templates can call each other with `skbs.gen(template_name, dest, *args)`, injected as `skbs` in `plugin.py` and per-file templates — handy to compose a bigger template out of smaller reusable ones. See the Tutorial ( https://github.com/hl037/skbs/wiki/Tutorial ) for the full semantics, and API_Reference ( https://github.com/hl037/skbs/wiki/API_Reference ) for the exact signature.
+
 ------
 
 To install a template (or a directory containing template :
@@ -176,6 +180,14 @@ skbs install -s my_template -n <name>
 ```
 
 Where `<name>` should be replaced by the name you want to use to recall the template.
+
+You can also install directly from a git URL — skbs clones it for you, under a name derived from the URL (`domain-name.com/path...`) unless you pass `-n`:
+
+```
+skbs install https://github.com/some/repo.git
+```
+
+This requires `git` to be available on `PATH`.
 
 ------
 

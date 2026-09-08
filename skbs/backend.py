@@ -6,15 +6,18 @@
 
 import re
 import shutil
+import subprocess
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass
 from importlib import resources
 from pathlib import Path
 from traceback import print_exc
+from urllib.parse import urlparse
 
 import cyclopts
 
+import skbs
 from .pluginutils import (
   Config as C, EndOfPlugin, PluginError, exclude, pluginError, endOfTemplate,
   invokeCmd, invokeCmdCyclopts, OptionParser, getClick,
@@ -55,11 +58,20 @@ class SingleFileGlobals:
   file_name_parser: FileNameParser
   exclude: Callable
   endOfTemplate: Callable
-  invokeTemplate: Callable
+  skbs: object
 
 sys.excepthook = print_exc
 
 APP = 'skbs'
+
+# scp-like syntax (e.g. `git@github.com:user/repo.git`) - the mandatory
+# `user@` is what tells it apart from a Windows drive-letter local path
+# (`C:\path`), which has no '@'.
+_SCP_LIKE_GIT_URL = re.compile(r'^(?P<user>[^@/\s]+)@(?P<host>[^:/\s]+):(?!//)(?P<path>.+)$')
+
+class GitError(RuntimeError):
+  """Raised when installing a template from a git URL can't proceed: git isn't on PATH, or the clone itself failed."""
+  pass
 
 class Backend(object):
   # Kept as class attributes for backward compatibility; the canonical
@@ -158,6 +170,53 @@ class Backend(object):
       dest.unlink()
     return dest
 
+  @staticmethod
+  def isGitUrl(src: str) -> bool:
+    """
+    Heuristic to tell a git URL apart from a local path: any URL scheme
+    (`https://`, `ssh://`, `git://`, `file://`...), scp-like syntax
+    (`git@host:path`), or a plain path ending in `.git`. None of these are
+    meaningful as plain local paths for `install`, so there's no ambiguity
+    with the existing copy/symlink behavior to preserve.
+    """
+    if src.endswith('.git') :
+      return True
+    if '://' in src :
+      return True
+    return bool(_SCP_LIKE_GIT_URL.match(src))
+
+  @staticmethod
+  def gitUrlToName(url: str) -> str:
+    """
+    Derive an install name from a git URL, mirroring its origin
+    (`domain-name.com/path...`) so installed templates stay recognizable
+    and collisions between different hosts/orgs are avoided.
+    """
+    m = _SCP_LIKE_GIT_URL.match(url)
+    if m :
+      host, path = m['host'], m['path']
+    else :
+      u = urlparse(url)
+      host, path = u.hostname, u.path.lstrip('/')
+    if path.endswith('.git') :
+      path = path[:-len('.git')]
+    return f'{host}/{path}' if host else path
+
+  def installTemplateFromGit(self, url: str, name=None):
+    if shutil.which('git') is None :
+      raise GitError('git is required to install a template from a git URL, but it was not found on PATH.')
+    if name is None :
+      name = self.gitUrlToName(url)
+    dest = self.user_templates / name
+    if dest.exists() :
+      self.uninstallTemplate(name)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    try:
+      subprocess.run(['git', 'clone', url, str(dest)], check=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError as exc :
+      raise GitError(f'git clone failed:\n{exc.stderr}') from exc
+    return dest
+
   def findTemplate(self, template, single_file_authorized=False):
     """
     Find `template`. If `template` starts with a '@', then search in globally installed template.
@@ -179,7 +238,7 @@ class Backend(object):
       return p
     return p
 
-  def execSingleFileTemplate(self, template_path : Path, dest : str, args:list[str], out_f=None, plugin = C()):
+  def execSingleFileTemplate(self, template_path : Path, dest : str, args:list[str], out_f=None, plugin = C(), result=None):
     ask_help = (dest == '@help') or (args and args[0] == '--help')
     if dest == '@' :
       dest = Path(template_path.name)
@@ -230,19 +289,22 @@ class Backend(object):
         file_name_parser=file_name_parser,
         exclude=exclude,
         endOfTemplate=endOfTemplate,
-        invokeTemplate=self.invokeTemplate,
+        skbs=skbs.templateSkbs,
       )))
 
+      root = dest_parent.resolve()
       try:
-        _locals = processFile(template_path, out_p, False, True, base_locals, tempiny_l, dest_parent, out_f=out_f)
+        _locals = processFile(template_path, out_p, False, True, base_locals, tempiny_l, dest_parent, out_f=out_f, backend=self, root=root)
       except PluginError as err:
         return False, err.help
+      if result is not None :
+        result.update(_locals)
       return True, _locals.get('help')
 
     # Template as dir
     else:
       try:
-        conf, plugin, help = parsePlugin(template_path / 'plugin.py', args, dest, ask_help, self.invokeTemplate)
+        conf, plugin, help = parsePlugin(template_path / 'plugin.py', args, dest, ask_help, self)
       except PluginError as err:
         return False, err.help
       dest = Path(dest)
@@ -257,35 +319,42 @@ class Backend(object):
         file_name_parser=file_name_parser,
         exclude=exclude,
         endOfTemplate=endOfTemplate,
-        invokeTemplate=self.invokeTemplate,
+        skbs=skbs.templateSkbs,
       )))
       base_locals.include = Include([template_path / '__include'], tempiny_l, base_locals, file_name_parser)
 
-      processFile(template_path/'root', out_p, False, True, base_locals, tempiny_l, dest_parent, out_f=out_f)
+      root = dest_parent.resolve()
+      _locals = processFile(template_path/'root', out_p, False, True, base_locals, tempiny_l, dest_parent, out_f=out_f, backend=self, root=root)
+      if result is not None :
+        result.update(_locals)
       return True, help
 
 
-  def execTemplate(self, template_path : Path, dest : str, args, out_f=None):
+  def execTemplate(self, template_path : Path, dest : str, args, out_f=None, result=None):
     """
     Generate `template_path` (single-file or multi-file, see
     execSingleFileTemplate) to `dest`. `dest` is `'@help'` (or `args[0] ==
     '--help'`) to only retrieve the help message without generating
     anything, or `'@'` to write a single-file template's output to `out_f`
     instead of the filesystem (unavailable for multi-file templates).
+    `result`, if given, is only honored for single-file templates (see
+    execSingleFileTemplate) - silently ignored here, since a multi-file
+    template has no single set of locals representative of its whole tree.
 
     @return (success: bool, help_or_error_message: str)
     """
     if not (template_path/'root').is_dir() :
-      return self.execSingleFileTemplate(template_path, dest, args, out_f=out_f)
+      return self.execSingleFileTemplate(template_path, dest, args, out_f=out_f, result=result)
 
     if dest == '@' or out_f is not None:
       return False, 'Stream output is not available as dest for multi-file plugins.'
     ask_help = (dest == '@help') or (args and args[0] == '--help')
     try:
-      conf, plugin, help = parsePlugin(template_path / 'plugin.py', args, dest, ask_help, self.invokeTemplate)
+      conf, plugin, help = parsePlugin(template_path / 'plugin.py', args, dest, ask_help, self)
     except PluginError as err:
       return False, err.help
     dest = Path(dest)
+    root = dest.resolve()
 
     tempiny_l, file_name_parser, include_dirname, pathmod_filename = parseConf(conf)
 
@@ -300,14 +369,14 @@ class Backend(object):
       file_name_parser=file_name_parser,
       exclude=exclude,
       endOfTemplate=endOfTemplate,
-      invokeTemplate=self.invokeTemplate,
+      skbs=skbs.templateSkbs,
     )))
     base_locals.include = Include(include_paths, tempiny_l, base_locals, file_name_parser)
 
     # The root itself can have a `_template.` controlling it, same as any
     # other directory (see fileengine.processDir) - unlike nested ones,
     # it's never reached by the loop below, so it's handled once here.
-    root_path, root_content = processDir(base_locals, src_root, Path(''), file_name_parser)
+    root_path, root_content = processDir(base_locals, src_root, Path(''), file_name_parser, dest=dest, backend=self)
     if root_content is not None :
       if dest.is_dir() :
         return False, f'{dest} already exists and is a directory, but this template produces a single file.'
@@ -349,7 +418,7 @@ class Backend(object):
         if in_p.is_dir() :
           if in_p.name != '__include' :
             out_path = parseFilePath(out / in_p.name, file_name_parser, ( pm for pm, _ in pathmod_stack ), is_dir=True)
-            out_path, content = processDir(base_locals, in_p, out_path, file_name_parser)
+            out_path, content = processDir(base_locals, in_p, out_path, file_name_parser, dest=dest, backend=self)
             if content is not None :
               if (dest / out_path).is_dir() :
                 return False, f'{dest / out_path} already exists and is a directory, but this template produces a file there.'
@@ -365,15 +434,5 @@ class Backend(object):
         out_p, is_opt, is_template = parseFilePath(out / in_p.name, file_name_parser, ( pm for pm, _ in pathmod_stack ))
         if not out_p :
           continue
-        processFile(in_p, out_p, is_opt, is_template, base_locals, tempiny_l, dest)
+        processFile(in_p, out_p, is_opt, is_template, base_locals, tempiny_l, dest, backend=self, root=root)
     return True, help
-
-  def invokeTemplate(self, template_name, dest, args, out_f=None, single_file_authorized=None):
-    """
-    Resolve `template_name` (via findTemplate) and execTemplate it to
-    `dest`. This is the function exposed as `invokeTemplate(...)` inside
-    plugin.py/per-file templates (see pluginloader.parsePlugin).
-    """
-    if single_file_authorized is None :
-      single_file_authorized = out_f is not None
-    return self.execTemplate(self.findTemplate(template_name, single_file_authorized=single_file_authorized), dest, args, out_f)

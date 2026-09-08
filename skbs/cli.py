@@ -6,7 +6,7 @@ import cyclopts
 
 from . import configutils
 from . import pluginutils
-from .backend import Backend
+from .backend import Backend, GitError
 from pathlib import Path
 
 app = cyclopts.App(
@@ -104,8 +104,20 @@ def install(
   name: Annotated[str | None, cyclopts.Parameter(name=['--name', '-n'])] = None,
 ):
   """
-  Install a new template.
+  Install a new template. `src` can be a local path, or a git URL to clone
+  (installed under domain-name.com/path... unless --name is given).
   """
+  if Backend.isGitUrl(src) :
+    if symlink :
+      print('--symlink is not supported when installing from a git URL')
+      raise SystemExit(1)
+    try:
+      f = B.installTemplateFromGit(src, name)
+    except GitError as err :
+      print(err)
+      raise SystemExit(1)
+    print(f'{src} cloned and installed at {f}')
+    return
   src_p = Path(src)
   if name is None :
     name = src_p.name
