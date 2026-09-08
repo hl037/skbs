@@ -31,7 +31,7 @@ Moreover, contrary to other template language, it is possible to change the deli
   * Compose templates: call one template from another with `skbs.gen()`
   * Section to keep user edits on a previously generated file
   * Dynamic file and directory names
-  * In-template Click integration to provide quickly user-friendly CLI-like options 
+  * In-template CLI argument parsing via `cyclopts` (always available), or `click` if you prefer it (optional)
   * Heavily tested with `pytest`
 
 # Regenerate without losing your edits
@@ -135,7 +135,7 @@ skbs gen @skbs.sft foo_bar -- --help
 
 To create a self-contained single file template:
 ```
-skbs gen @skbs.sft my_template -- -c
+skbs gen @skbs.sft my_template -- --cyclopts
 ```
 
 Where `my_template` is the name you want to give it.
@@ -160,7 +160,7 @@ This syntax can be changed by modifying the header line as described in the Tuto
 
 To create a multi-file template :
 ```
-skbs gen @skbs my_second_template -- -c
+skbs gen @skbs my_second_template -- --cyclopts
 ```
 
 Where `my_second_template` is the name of the template.
