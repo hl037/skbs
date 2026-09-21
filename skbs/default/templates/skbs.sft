@@ -10,17 +10,16 @@
  ## from tempiny import Tempiny
  ##
  ## app = cyclopts.App(help=__doc__)
+ ## flavor_group = cyclopts.Group('Flavor', validator=cyclopts.validators.LimitedChoice())
  ## @app.default
  ## def main(
- ##   use_click: Annotated[bool, cyclopts.Parameter(name=['--click', '-c'])] = False,
- ##   use_cyclopts: Annotated[bool, cyclopts.Parameter(name=['--cyclopts'])] = False,
- ##   use_promptable: Annotated[bool, cyclopts.Parameter(name=['--promptable', '-p'])] = False,
+ ##   use_click: Annotated[bool, cyclopts.Parameter(name=['--click', '-c'], group=flavor_group)] = False,
+ ##   use_cyclopts: Annotated[bool, cyclopts.Parameter(name=['--cyclopts'], group=flavor_group)] = True,
  ##   src: Annotated[Optional[str], cyclopts.Parameter(name=['--src', '-i'])] = None,
  ##   syn: Annotated[Optional[tuple[str,str,str]], cyclopts.Parameter(name=['--syn', '-y'])] = None,
  ## ):
  ##   _p.click = use_click
  ##   _p.cyclopts = use_cyclopts
- ##   _p.promptable = use_promptable
  ##   _p.dest = dest
  ##   _p.syn = None
  ##   if (
@@ -86,26 +85,9 @@
 {{_p.cc}}
 {{_p.cc}} app = cyclopts.App(help=__doc__)
 {{_p.cc}} @app.default
+{{_p.cc}} @promptable
 {{_p.cc}} def main(**kwargs):
 {{_p.cc}}   _p.update(kwargs)
-{{_p.cc}} -
-{{_p.cc}}
-{{_p.cc}} __doc__ = extractHelp(app)
-{{_p.cc}}
-{{_p.cc}} if ask_help :
-{{_p.cc}}  raise EndOfPlugin()
-{{_p.cc}} -
-{{_p.cc}}
-{{_p.cc}} invokeCmdCyclopts(app, args)
- ## -
- ## elif _p.promptable:
-{{_p.cc}} _p = C()
-{{_p.cc}}
-{{_p.cc}} app = cyclopts.App(help=__doc__)
-{{_p.cc}} @app.default
-{{_p.cc}} @promptable
-{{_p.cc}} def main(name: Annotated[str, Prompt("Name")]):
-{{_p.cc}}   _p.name = name
 {{_p.cc}} -
 {{_p.cc}}
 {{_p.cc}} __doc__ = extractHelp(app)

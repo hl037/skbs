@@ -31,25 +31,9 @@ plugin = C()
 
 app = cyclopts.App(help=__doc__)
 @app.default
+@promptable
 def main(**kwargs):
   plugin.update(kwargs)
-
-__doc__ = extractHelp(app)
-
-if ask_help :
-  raise EndOfPlugin()
-
-invokeCmdCyclopts(app, args)
-
- ## -
- ## elif _p.promptable :
-plugin = C()
-
-app = cyclopts.App(help=__doc__)
-@app.default
-@promptable
-def main(name: Annotated[str, Prompt("Name")]):
-  plugin.name = name
 
 __doc__ = extractHelp(app)
 

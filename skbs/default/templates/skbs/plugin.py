@@ -26,17 +26,17 @@ from tempiny import Tempiny
 
 app = cyclopts.App(help=__doc__)
 
+flavor_group = cyclopts.Group('Flavor', validator=cyclopts.validators.LimitedChoice())
+
 @app.default
 def main(
   src: Annotated[Optional[str], cyclopts.Parameter(name=['--src', '-i'])] = None,
-  use_click: Annotated[bool, cyclopts.Parameter(name=['--click', '-c'])] = False,
-  use_cyclopts: Annotated[bool, cyclopts.Parameter(name=['--cyclopts'])] = False,
-  use_promptable: Annotated[bool, cyclopts.Parameter(name=['--promptable', '-p'])] = False,
+  use_click: Annotated[bool, cyclopts.Parameter(name=['--click', '-c'], group=flavor_group)] = False,
+  use_cyclopts: Annotated[bool, cyclopts.Parameter(name=['--cyclopts'], group=flavor_group)] = True,
   sft: Annotated[bool, cyclopts.Parameter(name=['--sft', '-s'])] = False,
 ):
   plugin.click = use_click
   plugin.cyclopts = use_cyclopts
-  plugin.promptable = use_promptable
   plugin.sft = sft
   plugin.dest = dest
   if sft:
