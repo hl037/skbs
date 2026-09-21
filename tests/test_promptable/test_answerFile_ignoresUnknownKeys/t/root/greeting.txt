@@ -1,0 +1,2 @@
+## # {{__skbs_template__}}
+Deploying {{_p.service}} with {{_p.replicas}} replicas.

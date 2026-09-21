@@ -20,7 +20,7 @@ from .pluginutils import (
   Config as C, EndOfPlugin, PluginError, pluginError, invokeCmd, invokeCmdCyclopts,
   OptionParser, getClick, extractHelpFromLocals, extractHelp,
 )
-from .pluginutils.promptable import promptable, Prompt
+from .pluginutils.promptable import promptable, Prompt, answer_file
 from .pathresolve import (
   FileNameParser, OPT_PREFIX, FORCE_PREFIX, RAW_PREFIX, TEMPLATE_PREFIX,
   INCLUDE_DIRNAME, PATHMOD_FILENAME, _get,
@@ -55,6 +55,7 @@ class PluginGlobals:
   Annotated: object
   Prompt: type
   promptable: Callable
+  answer_file: Callable
 
 
 def createPluginModule(path, g):
@@ -129,6 +130,7 @@ def parsePlugin(path, args, dest, ask_help, backend):
     Annotated=Annotated,
     Prompt=Prompt,
     promptable=promptable,
+    answer_file=answer_file,
   )))
   if path.is_file() :
     # source plugin.py if one

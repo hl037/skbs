@@ -24,7 +24,7 @@ from .pluginutils import (
   Config as C, EndOfPlugin, PluginError, exclude, pluginError, endOfTemplate,
   invokeCmd, invokeCmdCyclopts, OptionParser, getClick, extractHelp,
 )
-from .pluginutils.promptable import promptable, Prompt
+from .pluginutils.promptable import promptable, Prompt, answer_file
 from .pathresolve import (
   findTemplates, tempinySyntaxRegex, parseFilePath, FileNameParser,
   OPT_PREFIX, TEMPLATE_PREFIX, FORCE_PREFIX, RAW_PREFIX, INCLUDE_DIRNAME, PATHMOD_FILENAME,
@@ -66,6 +66,7 @@ class SingleFileGlobals:
   Annotated: object
   Prompt: type
   promptable: Callable
+  answer_file: Callable
 
 sys.excepthook = print_exc
 
@@ -301,6 +302,7 @@ class Backend(object):
         Annotated=Annotated,
         Prompt=Prompt,
         promptable=promptable,
+        answer_file=answer_file,
       )))
 
       root = dest_parent.resolve()
