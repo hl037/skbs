@@ -36,10 +36,11 @@ Moreover, contrary to other template language, it is possible to change the deli
 
 # Regenerate without losing your edits
 
-Most template tools are one-shot: run once, then you're on your own. SKBS can treat a file as already generated: mark the auto-generated parts as "sections", and later runs only touch those — hand-written content elsewhere in the file is left completely alone.
+Most template tools are one-shot: run once, then you're on your own. SKBS can treat a file as already generated: wrap anything a user might hand-edit in a "section", and later runs regenerate everything else while leaving that section's content alone.
 
 ```
 ## # {{__skbs_template__}}
+## keep_only_sections = True
 Header (auto-generated, do not edit)
 ## beginSection(overwrite=False)
 --- BEGIN CUSTOM ---
@@ -48,13 +49,15 @@ Header (auto-generated, do not edit)
 Footer
 ```
 
-Generate it once, hand-edit the content between `BEGIN CUSTOM`/`END CUSTOM`, then run `skbs gen` again on the same destination: your edit survives, because `overwrite=False` tells SKBS to keep what's already in the file for that section.
+Generate it once, hand-edit the content between `BEGIN CUSTOM`/`END CUSTOM`, then run `skbs gen` again on the same destination: your edit survives, because `overwrite=False` tells SKBS to keep what's already in the file for that section — while `Header`/`Footer` above regenerate normally if you change the template. (`keep_only_sections = True` is what makes the *rest* of the file follow the template on every run; without it, the whole file freezes after the first generation, sections included.)
 
 # Why not Cookiecutter / Copier / Yeoman?
 
   * **Cookiecutter / Copier** use Jinja2: a templating *language* with its own limited logic (loops, conditionals, filters). SKBS templates are plain Python: no sandbox, no missing feature — if Python can do it, so can your template.
   * **Yeoman** generators are npm packages you write in JS and publish/install like any package. SKBS templates are just files: write one, `skbs install --symlink` it, done — no packaging step, no separate ecosystem to learn.
   * None of the above let you re-run a template over a file you've since hand-edited without clobbering your changes — see "Regenerate without losing your edits" above.
+
+Coming from Cookiecutter specifically? See the step-by-step guide ( https://github.com/hl037/skbs/wiki/From_Cookiecutter ) — same options/dynamic-name/conditional-file patterns, built as a working skbs template.
 
 # Install
 

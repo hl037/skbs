@@ -8,6 +8,7 @@ import sys
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Annotated
 from importlib.machinery import ModuleSpec, SourceFileLoader
 from importlib.util import module_from_spec, spec_from_loader
 
@@ -17,8 +18,9 @@ from tempiny import Tempiny
 from . import _gencontext
 from .pluginutils import (
   Config as C, EndOfPlugin, PluginError, pluginError, invokeCmd, invokeCmdCyclopts,
-  OptionParser, getClick, extractHelpFromLocals,
+  OptionParser, getClick, extractHelpFromLocals, extractHelp,
 )
+from .pluginutils.promptable import promptable, Prompt
 from .pathresolve import (
   FileNameParser, OPT_PREFIX, FORCE_PREFIX, RAW_PREFIX, TEMPLATE_PREFIX,
   INCLUDE_DIRNAME, PATHMOD_FILENAME, _get,
@@ -41,6 +43,7 @@ class PluginGlobals:
   cyclopts: object
   invokeCmd: Callable
   invokeCmdCyclopts: Callable
+  extractHelp: Callable
   EndOfPlugin: type[Exception]
   PluginError: type[Exception]
   pluginError: Callable
@@ -49,6 +52,9 @@ class PluginGlobals:
   skbs: object
   dest: Path | None
   parseCmd: OptionParser
+  Annotated: object
+  Prompt: type
+  promptable: Callable
 
 
 def createPluginModule(path, g):
@@ -71,8 +77,18 @@ def createPluginModule(path, g):
   sys.modules[name] = module
   module.__dict__.update(g)
 
+  # plugin.py is often loaded straight out of an installed template dir
+  # (or, during development, the package source tree itself) - letting the
+  # normal import machinery cache bytecode there litters it with
+  # __pycache__/*.pyc on every generation, so it's suppressed just for this
+  # one load rather than turned off process-wide.
+  prev_dont_write_bytecode = sys.dont_write_bytecode
+  sys.dont_write_bytecode = True
   try:
-    loader.exec_module(module)
+    try:
+      loader.exec_module(module)
+    finally:
+      sys.dont_write_bytecode = prev_dont_write_bytecode
   finally:
     # Sync back whatever the plugin set before raising (e.g. EndOfPlugin
     # early-exit after assigning `help`).
@@ -96,6 +112,7 @@ def parsePlugin(path, args, dest, ask_help, backend):
     cyclopts=cyclopts,
     invokeCmd = invokeCmd,
     invokeCmdCyclopts = invokeCmdCyclopts,
+    extractHelp = extractHelp,
     EndOfPlugin=EndOfPlugin,
     PluginError=PluginError,
     pluginError=pluginError,
@@ -109,6 +126,9 @@ def parsePlugin(path, args, dest, ask_help, backend):
     # e.g. `plugin.dest = dest` (see default template plugin.py).
     dest=Path(dest) if not ask_help else None,
     parseCmd=OptionParser(args, plugin),
+    Annotated=Annotated,
+    Prompt=Prompt,
+    promptable=promptable,
   )))
   if path.is_file() :
     # source plugin.py if one

@@ -75,6 +75,24 @@ def extractHelpFromLocals(loc):
   return next(( h for k in ('__doc__', 'help') if (h := loc.get(k)) ), 'No help provided for this template' )
 
 
+def extractHelp(cmd) -> str:
+  """
+  Extract the help text a click Command or cyclopts App would print for
+  itself, as a string - the usual `__doc__ = ...` half of the "expose
+  --help through skbs's own convention" boilerplate (see invokeCmd /
+  invokeCmdCyclopts for the other half, actually running the command).
+  """
+  import cyclopts
+  if isinstance(cmd, cyclopts.App) :
+    from rich.console import Console
+    buf = io.StringIO()
+    cmd.help_print([], console=Console(file=buf))
+    return buf.getvalue()
+  import click
+  with click.Context(cmd) as ctx :
+    return cmd.get_help(ctx)
+
+
 __name = '--'
 
 def invokeCmd(cmd, args, **extra):
@@ -106,20 +124,21 @@ def invokeCmd(cmd, args, **extra):
 
 def invokeCmdCyclopts(app, args):
   """
-  Invoke a cyclopts.App, capturing its output the same way invokeCmd does
-  for a click.Command: any output (help text, an error, or the command's
-  own prints) becomes a PluginError; silence means success.
+  Invoke a cyclopts.App directly: cyclopts already prints its own output
+  (help text, an error panel, or the command's own prints) straight to the
+  real stdout/stderr, which is exactly what's needed for a command that
+  reads from the terminal too (see skbs.pluginutils.promptable). Only the
+  SystemExit cyclopts always raises (on both success and failure) is caught
+  here, so it doesn't tear down the whole skbs process - a non-zero exit
+  code (cyclopts's own signal that argument parsing/validation failed)
+  still becomes a PluginError, so skbs doesn't carry on generating from a
+  plugin whose `main()` never actually ran to completion.
   """
-  import contextlib
-  buf = io.StringIO()
-  with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
-    try :
-      app(args)
-    except SystemExit :
-      pass
-  out = buf.getvalue()
-  if out :
-    raise PluginError(out)
+  try :
+    app(args)
+  except SystemExit as exc :
+    if exc.code not in (0, None) :
+      raise PluginError('') from exc
 
 class OptionParser(object):
   """

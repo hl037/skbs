@@ -1,3 +1,6 @@
+## # {{__skbs_template__}}
+ ## is_opt = True
+ ## new_path = dest.with_name('plugin.py')
 __doc__ = """
 Template {{_p.dest}}
 """
@@ -15,8 +18,7 @@ plugin = C()
 def main(**kwargs):
   plugin.update(kwargs)
 
-with click.Context(main) as ctx:
-  __doc__ = main.get_help(ctx)
+__doc__ = extractHelp(main)
 
 if ask_help :
   raise EndOfPlugin()
@@ -32,11 +34,24 @@ app = cyclopts.App(help=__doc__)
 def main(**kwargs):
   plugin.update(kwargs)
 
-import io, contextlib
-_buf = io.StringIO()
-with contextlib.redirect_stdout(_buf):
-  app.help_print([])
-__doc__ = _buf.getvalue()
+__doc__ = extractHelp(app)
+
+if ask_help :
+  raise EndOfPlugin()
+
+invokeCmdCyclopts(app, args)
+
+ ## -
+ ## elif _p.promptable :
+plugin = C()
+
+app = cyclopts.App(help=__doc__)
+@app.default
+@promptable
+def main(name: Annotated[str, Prompt("Name")]):
+  plugin.name = name
+
+__doc__ = extractHelp(app)
 
 if ask_help :
   raise EndOfPlugin()

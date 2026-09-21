@@ -31,10 +31,12 @@ def main(
   src: Annotated[Optional[str], cyclopts.Parameter(name=['--src', '-i'])] = None,
   use_click: Annotated[bool, cyclopts.Parameter(name=['--click', '-c'])] = False,
   use_cyclopts: Annotated[bool, cyclopts.Parameter(name=['--cyclopts'])] = False,
+  use_promptable: Annotated[bool, cyclopts.Parameter(name=['--promptable', '-p'])] = False,
   sft: Annotated[bool, cyclopts.Parameter(name=['--sft', '-s'])] = False,
 ):
   plugin.click = use_click
   plugin.cyclopts = use_cyclopts
+  plugin.promptable = use_promptable
   plugin.sft = sft
   plugin.dest = dest
   if sft:
@@ -47,11 +49,7 @@ def main(
     else :
       plugin.content = None
 
-import io, contextlib
-_buf = io.StringIO()
-with contextlib.redirect_stdout(_buf):
-  app.help_print([])
-__doc__ = _buf.getvalue()
+__doc__ = extractHelp(app)
 
 if ask_help :
   raise EndOfPlugin()

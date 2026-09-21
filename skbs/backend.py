@@ -15,13 +15,16 @@ from pathlib import Path
 from traceback import print_exc
 from urllib.parse import urlparse
 
+from typing import Annotated
+
 import cyclopts
 
 import skbs
 from .pluginutils import (
   Config as C, EndOfPlugin, PluginError, exclude, pluginError, endOfTemplate,
-  invokeCmd, invokeCmdCyclopts, OptionParser, getClick,
+  invokeCmd, invokeCmdCyclopts, OptionParser, getClick, extractHelp,
 )
+from .pluginutils.promptable import promptable, Prompt
 from .pathresolve import (
   findTemplates, tempinySyntaxRegex, parseFilePath, FileNameParser,
   OPT_PREFIX, TEMPLATE_PREFIX, FORCE_PREFIX, RAW_PREFIX, INCLUDE_DIRNAME, PATHMOD_FILENAME,
@@ -46,6 +49,7 @@ class SingleFileGlobals:
   cyclopts: object
   invokeCmd: Callable
   invokeCmdCyclopts: Callable
+  extractHelp: Callable
   EndOfPlugin: type[Exception]
   PluginError: type[Exception]
   pluginError: Callable
@@ -59,6 +63,9 @@ class SingleFileGlobals:
   exclude: Callable
   endOfTemplate: Callable
   skbs: object
+  Annotated: object
+  Prompt: type
+  promptable: Callable
 
 sys.excepthook = print_exc
 
@@ -277,6 +284,7 @@ class Backend(object):
         cyclopts=cyclopts,
         invokeCmd = invokeCmd,
         invokeCmdCyclopts = invokeCmdCyclopts,
+        extractHelp = extractHelp,
         EndOfPlugin=EndOfPlugin,
         PluginError=PluginError,
         pluginError=pluginError,
@@ -290,6 +298,9 @@ class Backend(object):
         exclude=exclude,
         endOfTemplate=endOfTemplate,
         skbs=skbs.templateSkbs,
+        Annotated=Annotated,
+        Prompt=Prompt,
+        promptable=promptable,
       )))
 
       root = dest_parent.resolve()

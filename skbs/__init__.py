@@ -1,9 +1,24 @@
 
+import contextlib
+import os
+
 from . import _gencontext
 from .pluginutils import PluginError
 
 
-def gen(template_name, dest='@', *args, out_f=None, result=None):
+class _Forward:
+  def __repr__(self):
+    return 'skbs.FORWARD'
+
+FORWARD = _Forward()
+"""
+Sentinel: the default value of `gen()`'s `stdout` parameter - leave real
+stdout untouched (whatever a template prints, or reads via an interactive
+prompt like skbs.pluginutils.promptable, goes straight through).
+"""
+
+
+def gen(template_name, dest='@', *args, out_f=None, result=None, stdout=FORWARD):
   """
   Generate `template_name` to `dest`.
 
@@ -22,7 +37,25 @@ def gen(template_name, dest='@', *args, out_f=None, result=None):
   gets filled (via `.update(...)`) with the final locals of a generated
   single-file template - output only, never used to inject variables into
   the called template. Ignored for multi-file templates.
+
+  `stdout` controls what happens to the real stdout produced while running
+  the template (plain prints, interactive prompts...): `skbs.FORWARD` (the
+  default) leaves it untouched - it goes straight to whatever stdout
+  already is, nested `skbs.gen()` calls included. `None` mutes it entirely.
+  A file-like object captures it there instead.
   """
+  if stdout is FORWARD :
+    return _gen(template_name, dest, *args, out_f=out_f, result=result)
+  sink = open(os.devnull, 'w') if stdout is None else stdout
+  try :
+    with contextlib.redirect_stdout(sink) :
+      return _gen(template_name, dest, *args, out_f=out_f, result=result)
+  finally :
+    if stdout is None :
+      sink.close()
+
+
+def _gen(template_name, dest='@', *args, out_f=None, result=None):
   ctx = _gencontext.current()
   args = list(args)
   if ctx is None :
@@ -46,7 +79,8 @@ def gen(template_name, dest='@', *args, out_f=None, result=None):
 
 
 class _TemplateSkbs:
-  """What `skbs` refers to inside a running template - exposes only `gen`."""
+  """What `skbs` refers to inside a running template - exposes only `gen` (and the `FORWARD` sentinel for its `stdout` parameter)."""
   gen = staticmethod(gen)
+  FORWARD = FORWARD
 
 templateSkbs = _TemplateSkbs()
